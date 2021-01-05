@@ -1,0 +1,60 @@
+version: "2"
+
+networks:
+  spark-net:
+    driver: bridge
+    ipam:
+      config:
+      - subnet: 172.25.0.0/24
+
+services:
+  pymaster:
+    build: ./pymaster
+    container_name: pymaster
+    volumes:
+      - ./pymaster/data
+    networks:
+      spark-net:
+        ipv4_address: 172.25.0.101
+    ports:
+      - 8080:8080
+      - 7077:7077
+
+  pynode1:
+    build: ./pynode
+    container_name: pynode1
+    depends_on:
+      - pymaster
+    volumes:
+      - pynode1:/pynode/data
+    networks:
+      spark-net:
+        ipv4_address: 172.25.0.102
+
+  pynode2:
+    build: ./pynode
+    container_name: pynode2
+    depends_on:
+      - pymaster
+    volumes:
+      - pynode2:/pynode/data
+    networks:
+      spark-net:
+        ipv4_address: 172.25.0.103
+
+  pyspark-notebook:
+    image: jupyter/pyspark-notebook
+    container_name: pyspark-notebook
+    volumes:
+      - /home/danilometal/docker-spark-cluster/jupyter:/home/jovyan/spark
+    networks:
+      spark-net:
+        ipv4_address: 172.25.0.104
+    ports:
+      - 8888:8888
+
+volumes:
+  pymaster:
+  pynode1:
+  pynode2:
+  jupyter:
