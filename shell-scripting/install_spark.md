@@ -100,7 +100,7 @@ $SPARK_HOME/bin/spark-shell
 $SPARK_HOME/bin/pyspark
 ```
 
-[spark-jupyter] https://medium.com/@am.benatmane/setting-up-a-spark-environment-with-jupyter-notebook-and-apache-zeppelin-on-ubuntu-e12116d6539e
+[spark-jupyter](https://medium.com/@am.benatmane/setting-up-a-spark-environment-with-jupyter-notebook-and-apache-zeppelin-on-ubuntu-e12116d6539e)
 
 ```bash
 
@@ -123,14 +123,11 @@ python -m spylon_kernel install --user
 $SPARK_HOME/bin/sparkR
 ```
 
+*Links
+
 [spark-on-ubuntu](https://datawookie.netlify.app/blog/2017/07/installing-spark-on-ubuntu/)
-
 [scala-commans](https://data-flair.training/blogs/scala-spark-shell-commands/)
-
-
-
-
-[spark-cluster] https://www.tutorialkart.com/apache-spark/how-to-setup-an-apache-spark-cluster/
+[spark-cluster](https://www.tutorialkart.com/apache-spark/how-to-setup-an-apache-spark-cluster/)
 
 
 
