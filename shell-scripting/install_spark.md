@@ -126,7 +126,9 @@ $SPARK_HOME/bin/sparkR
 *Links
 
 [spark-on-ubuntu](https://datawookie.netlify.app/blog/2017/07/installing-spark-on-ubuntu/)
+
 [scala-commans](https://data-flair.training/blogs/scala-spark-shell-commands/)
+
 [spark-cluster](https://www.tutorialkart.com/apache-spark/how-to-setup-an-apache-spark-cluster/)
 
 
