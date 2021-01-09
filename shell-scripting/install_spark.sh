@@ -1,7 +1,26 @@
 #!/bin/bash
-#https://downloads.apache.org/spark/
-pwd
-#wget https://downloads.apache.org/spark/spark-3.0.0-preview2/spark-3.0.0-preview2-bin-hadoop3.2.tgz -P /tmp
+# Danilo Nunes Melo
+# 01/09/2021
+# Spark Installation Automated
+# Version 1.0
+
+url_spark='https://downloads.apache.org/spark/spark-3.0.1/'
+
+spark_version=$(curl ${url_spark} | grep tar.gz | awk -F '"' '{ print $6 }' | grep gz$)
+
+# Set PS3 prompt
+PS3="Enter the Spark Version to install : "
+
+# set shuttle list
+select spk_vrn in spark_version
+do
+    echo "${spk_vrn} selected"
+done
+
+echo "Downloading the packages ${spk_vrn}"
+
+wget ${url_spark}${spk_vrn} -P /tmp
+
 if [[ $? -eq 0 ]]
      then
        echo "Spark Downloaded successfully"
@@ -10,11 +29,9 @@ if [[ $? -eq 0 ]]
        exit
 fi
 
-echo "Starting  unpacking"
+echo "Starting unpacking"
 
-cd /usr/local/
-pwd
-tar -xvf /tmp/spark-3.0.0-preview2-bin-hadoop3.2.tgz
+tar -xvf /tmp/${spk_vrn}
 
 if [[ $? -eq 0 ]]
      then
