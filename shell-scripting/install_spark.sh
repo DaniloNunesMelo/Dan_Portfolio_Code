@@ -54,19 +54,30 @@ if [[ $? -eq 0 ]]
 fi
 
 
-#echo "Starting configuration Pyspark"
-
+if [[ ${spk_vrn} -eq "^pyspark" ]]
+     then
+       echo "Starting configuration Pyspark"
+       ln -s /usr/local/spark3.0/ /usr/local/spark
+       chown -RH spark: /usr/local/spark
+       sh -c 'chmod +x /usr/local/spark/bin/*.sh'
+       export SPARK_HOME=/usr/local/spark
+#       export PYSPARK_DRIVER_PYTHON=jupyter
+#       export PYSPARK_DRIVER_PYTHON_OPTS='notebook'
+       export PYSPARK_PYTHON=python3
+     else
+       echo "Error while unzipping"
+       exit
+fi
 ## TODO *Verify env varialbles for R Spark
+if [[ ${spk_vrn} -eq ^SparkR ]]
+     then
+       echo "Starting configuration SparkR"
+       ln -s /usr/local/SparkR/ /usr/local/spark
+       chown -RH spark: /usr/local/SparkR
+       sh -c 'chmod +x /usr/local/SparkR/bin/*.sh'
+       export SPARK_HOME=/usr/local/SparkR
 
-#sudo ln -s /usr/local/spark3.0/ /usr/local/spark
-
-#sudo chown -RH spark: /usr/local/spark
-
-#sudo sh -c 'chmod +x /usr/local/spark/bin/*.sh'
-
-#export SPARK_HOME=/usr/local/spark
-#export PYSPARK_DRIVER_PYTHON=jupyter
-#export PYSPARK_DRIVER_PYTHON_OPTS='notebook'
-#export PYSPARK_PYTHON=python3
-
-
+     else
+       echo "Error while unzipping"
+       exit
+fi
