@@ -1,0 +1,4 @@
+[ZoneTransfer]
+ZoneId=3
+ReferrerUrl=https://stats.oecd.org/modalexports.aspx?exporttype=bulk&FirstDataPointIndexPerPage=undefined&SubSessionId=a7452276-b633-4713-aece-6067c027c5a2&Random=0.028490174015826986
+HostUrl=https://stats.oecd.org/Download.ashx?type=csv&Delimiter=%2c&IncludeTimeSeriesIdentifiers=False&LabelType=CodeAndLabel&LanguageCode=en

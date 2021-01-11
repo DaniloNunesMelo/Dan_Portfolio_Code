@@ -12,7 +12,7 @@ services:
     build: ./pymaster
     container_name: pymaster
     volumes:
-      - ./pymaster/data
+      - /home/docker-spark-cluster/jupyter:/home/jovyan/spark
     networks:
       spark-net:
         ipv4_address: 172.25.0.101
@@ -26,7 +26,7 @@ services:
     depends_on:
       - pymaster
     volumes:
-      - pynode1:/pynode/data
+      - /home/docker-spark-cluster/jupyter:/home/jovyan/spark
     networks:
       spark-net:
         ipv4_address: 172.25.0.102
@@ -37,7 +37,7 @@ services:
     depends_on:
       - pymaster
     volumes:
-      - pynode2:/pynode/data
+      - /home/docker-spark-cluster/jupyter:/home/jovyan/spark
     networks:
       spark-net:
         ipv4_address: 172.25.0.103
@@ -46,7 +46,7 @@ services:
     image: jupyter/pyspark-notebook
     container_name: pyspark-notebook
     volumes:
-      - /home/danilometal/docker-spark-cluster/jupyter:/home/jovyan/spark
+      - /home/docker-spark-cluster/jupyter:/home/jovyan/spark
     networks:
       spark-net:
         ipv4_address: 172.25.0.104
