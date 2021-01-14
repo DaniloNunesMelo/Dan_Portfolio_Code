@@ -27,7 +27,7 @@ with open(FILE_NAME, "rb") as f:
     file_hash_md5 = hashlib.md5()
     while chunk := f.read(8192):
         file_hash_md5.update(chunk)
-print(file_hash_md5.hexdigest())
+print("File Hash MD5: ",file_hash_md5.hexdigest())
 
 # sha256sum Canada.xlsx
 
@@ -35,7 +35,7 @@ with open(FILE_NAME, "rb") as f:
     file_hash_256 = hashlib.sha256()
     while chunk := f.read(8192):
         file_hash_256.update(chunk)
-print(file_hash_256.hexdigest())
+print("File Hash 256: ",file_hash_256.hexdigest())
 
 df_canada = pd.read_excel(FILE_NAME, sheet_name='Regions by Citizenship', skiprows=20)
 df_canada_citizen = pd.read_excel(FILE_NAME, sheet_name='Canada by Citizenship', skiprows=1)
@@ -241,44 +241,43 @@ html_body = '''
 
         <!-- ### Section 1 ### --->
         <h2>Graphic 1: Shows the scatter years and quantity of people</h2>
-        <iframe width="1000" height="550" frameborder="0" seamless="seamless" scrolling="no" \
+        <iframe width="1100" height="800" frameborder="0" seamless="seamless" scrolling="no" \
 src="''' + image1 + '''"></iframe>
 
         <!-- ### Section 2 ### --->
         <h2>Graphic 2: Areas-years vs quantity of people</h2>
-        <iframe width="1000" height="550" frameborder="0" seamless="seamless" scrolling="no" \
+        <iframe width="1100" height="800" frameborder="0" seamless="seamless" scrolling="no" \
 src="''' + image2 + '''"></iframe>
 
         <!-- ### Section 3 ### --->
         <h2>Graphic 3: Distribution of the number of people by year and Region</h2>
-        <iframe width="1000" height="550" frameborder="0" seamless="seamless" scrolling="no" \
+        <iframe width="1100" height="800" frameborder="0" seamless="seamless" scrolling="no" \
 src="''' + image3 + '''"></iframe>
 
 
         <!-- ### Section 4 ### --->
         <h2>Graphic 4: Line Areas-years vs quantity of people</h2>
-        <iframe width="1000" height="550" frameborder="0" seamless="seamless" scrolling="no" \
+        <iframe width="1100" height="800" frameborder="0" seamless="seamless" scrolling="no" \
 src="''' + image4 + '''"></iframe>
 
 
         <!-- ### Section 5 ### --->
         <h2>Graphic 5: Map QTD of People 2013</h2>
-        <iframe width="1600" height="550" frameborder="0" seamless="seamless" scrolling="no" \
+        <iframe width="1700" height="1000" frameborder="0" seamless="seamless" scrolling="no" \
 src="''' + image5 + '''"></iframe>
 
         <!-- ### Section 6 ### --->
         <h2>Graphic 6: Heatmap Total by Area</h2>
-        <iframe width="1000" height="300" frameborder="0" seamless="seamless" scrolling="no" \
+        <iframe width="1200" height="800" frameborder="0" seamless="seamless" scrolling="no" \
 src="''' + image6 + '''"></iframe>
 
         <!-- ### Section 7 ### --->
         <h2>Graphic 7: Heatmap Total by Region</h2>
-        <iframe width="1000" height="550" frameborder="0" seamless="seamless" scrolling="no" \
+        <iframe width="1200" height="800" frameborder="0" seamless="seamless" scrolling="no" \
 src="''' + image7 + '''"></iframe>
 
         <p>International Migration Flows to and from Selected Countries: The 2015 Revision. \
- International Migration Flows to and from Selected Countries: The 2015 Revision. \
-(United Nations database, POP/DB/MIG/Flow/Rev.2015).</p>
+            (United Nations database, POP/DB/MIG/Flow/Rev.2015).</p>
         <h3>                                   </h3>
         <h3>Reference Source table: Excel File </h3>
         ''' + df_audit_html + '''
