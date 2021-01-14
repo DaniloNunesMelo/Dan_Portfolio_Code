@@ -1,8 +1,8 @@
 #!/opt/conda/bin/python
 # Danilo Nunes Melo
-# Creation date 01/21/2021
-# Update date 01/21/2021
-# Spark Installation Automated
+# Creation date 01/14/2021
+# Update date 01/14/2021
+# Generate HTML Report
 # Version 1.0
 
 # Reports
