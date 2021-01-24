@@ -59,7 +59,6 @@ plt.title('Shows top 10 countries for Italian citizenship acquisition')
 plt.legend(labels=listCountries, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
 
 ax1.axis('equal')
-plt.show()
 plt.savefig(image1)
 
 print("Generating HTML")
