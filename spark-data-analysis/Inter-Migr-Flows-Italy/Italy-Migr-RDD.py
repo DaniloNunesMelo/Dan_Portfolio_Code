@@ -40,7 +40,7 @@ list_countries_top10 = rdd_countries_top10.sortBy( lambda a: a[1]).collect()
 ## Simple plots
 from matplotlib import pyplot as plt
 
-image1= "italy-image1"
+image1= "italy-image1.png"
 listCountries = []
 listValues = []
 
