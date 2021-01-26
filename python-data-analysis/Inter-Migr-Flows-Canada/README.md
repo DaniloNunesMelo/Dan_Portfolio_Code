@@ -30,30 +30,23 @@
 
 International Migration Flows to and from Selected Countries
 
-1. Using Jupyter Notebooks
+* Using Jupyter Notebooks
 
-        ```asc
-        AppDan - Canada International Migration Flows.ipynb
-        ```
-2. Creating Data Pipeline
+  `AppDan - Canada International Migration Flows.ipynb`
 
-        ```
-        Inter-Migr-Flows-Canada.py
-        ```
+* Creating Data Pipeline
 
-> We can use an App like Apache Airflow to schedule the pipeline chain.
+  `Inter-Migr-Flows-Canada.py`
 
-3. Submit the script to generate the html
+*We can use an App like Apache Airflow to schedule the pipeline chain.*
 
-   ```bash
-    ./Inter-Migr-Flows-Canada.py
-   ```
+* Submit the script to generate the html
 
-4. Generate HTML File with many charts
+  `./Inter-Migr-Flows-Canada.py`
 
-        ```
-        Report-Canada.html
-        ```
+* Generate HTML File with many charts
+
+  `Report-Canada.html`
 
     Graphic 1: Shows the scatter years and quantity of people
     ![Fig1](Fig-BubbleYears.jpg)

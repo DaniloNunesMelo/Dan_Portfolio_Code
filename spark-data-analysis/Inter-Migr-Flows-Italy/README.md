@@ -32,20 +32,17 @@ The purpose of this exercise is to try to simulate in an "uncomplicated" way the
 
 ## Exploratory Data Analysis
 
-1. Using Jupyter Notebooks
+* Using Jupyter Notebooks
 
-        ```
-        AppDan - Italy International Migration.ipynb
-        ```
-2. Creating Data Pipeline
+  `AppDan - Italy International Migration.ipynb`
 
-        ```
-        Unix-Italy-Migr-RDD.py
-        ```
+* Creating Data Pipeline
+
+  `Unix-Italy-Migr-RDD.py`
 
 > We can use an App like Apache Airflow to schedule the pipeline chain.
 
-3. Submit the script to be processed by cluster
+* Submit the script to be processed by cluster
 
    ```bash
     ./bin/spark-submit \
@@ -54,7 +51,7 @@ The purpose of this exercise is to try to simulate in an "uncomplicated" way the
        1000
    ```
 
-4. Monitoring the execution
+* Monitoring the execution
 
     Web UI Spark Event Timeline
     ![Fig1](Web-UI-Spark-Event-Timeline.JPG)
@@ -62,11 +59,10 @@ The purpose of this exercise is to try to simulate in an "uncomplicated" way the
     Web UI Spark Jobs
     ![Fig2](Web-UI-Spark-Jobs.JPG)
 
-5. Generate HTML File with a simple pie chart
+* Generate HTML File with a simple pie chart
 
-        ```
-        Report-Italy.html
-        ```
+  `Report-Italy.html`
 
-    Top 10 Italy Citizenship acquisition
-    ![Fig2](italy-image1.png)
+  Top 10 Italy Citizenship acquisitio
+
+  ![Fig3](italy-image1.png)
