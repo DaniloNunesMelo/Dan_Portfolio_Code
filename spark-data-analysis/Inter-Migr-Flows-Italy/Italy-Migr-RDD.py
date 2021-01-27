@@ -1,7 +1,7 @@
 #!/opt/conda/bin/pyspark
 # Danilo Nunes Melo
 # Creation date 01/24/2021
-# Update date
+# Update date 01/25/201
 # Generate HTML Report
 # Version 1.0
 
@@ -9,14 +9,18 @@
 # Italian citizenship acquisition
 # Generate Graphic with HTML for Exploratory Data Analysis.
 
-from pyspark import SparkContext
+import pyspark
+from pyspark.sql import SparkSession
 
-## Defining Spark Context
-conf = SparkConf().setAppName("ItalyMigApp").setMaster("spark://172.25.0.101:7077")
-sc = SparkContext(conf=conf)
+## Defining Spark Session
+
+spark = SparkSession.builder \
+    .master("spark://172.25.0.101:7077") \
+    .appName("ItalyMigApp") \
+    .getOrCreate()
 
 ## Reading flat file
-rdd_mig_italy = sc.textFile("/home/jovyan/spark/MIG_ITALY_NO_QUOTE.csv", 4, use_unicode=True).repartition(6)
+rdd_mig_italy = spark.sparkContext.textFile("/home/jovyan/spark/MIG_ITALY_NO_QUOTE.csv", 4, use_unicode=True).repartition(6)
 
 
 ## Schema RDD
@@ -40,7 +44,7 @@ list_countries_top10 = rdd_countries_top10.sortBy( lambda a: a[1]).collect()
 ## Simple plots
 from matplotlib import pyplot as plt
 
-image1= "italy-image1.png"
+image1= "italy-image1"
 listCountries = []
 listValues = []
 
@@ -55,8 +59,11 @@ ax1.pie(listValues, explode=explode, autopct='%1.1f%%', shadow=True, startangle=
 
 plt.tight_layout()
 plt.title('Shows top 10 countries for Italian citizenship acquisition')
+
 plt.legend(labels=listCountries, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
 
+ax1.axis('equal')
+plt.show()
 plt.savefig(image1)
 
 print("Generating HTML")
