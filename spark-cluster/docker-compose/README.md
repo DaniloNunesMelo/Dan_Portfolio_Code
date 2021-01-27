@@ -1,4 +1,4 @@
-# Spark Cluster
+# Creating a Spark Cluster
 
 ```asc
                         ##         .
