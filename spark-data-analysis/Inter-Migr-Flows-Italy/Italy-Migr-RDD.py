@@ -1,7 +1,6 @@
 #!/opt/conda/bin/pyspark
 # Danilo Nunes Melo
 # Creation date 01/24/2021
-# Update date 01/25/201
 # Generate HTML Report
 # Version 1.0
 
