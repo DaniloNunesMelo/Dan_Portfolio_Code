@@ -47,7 +47,7 @@ The purpose of this exercise is to try to simulate in an "uncomplicated" way the
    ```bash
     ./bin/spark-submit \
        --master spark://172.25.0.101:7077 \
-       /home/jovyan/spark/Unix-Italy-Migr-RDD.py \
+       /home/jovyan/spark/Italy-Migr-RDD.py \
        1000
    ```
 
