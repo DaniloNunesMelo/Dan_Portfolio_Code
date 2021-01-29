@@ -3,8 +3,8 @@ import os
 execution_path=os.getcwd()
 
 prediction = ImagePrediction()
-prediction.setModelTypeAsSqueezeNet()
-prediction.setModelPath(os.path.join(execution_path, "squeezenet_weights_tf_dim_ordering_tf_kernels.h5"))
+prediction.setModelTypeAsMobileNetV2()
+prediction.setModelPath(os.path.join(execution_path, "mobilenet_v2.h5"))
 prediction.loadModel()
 
 predictions, probabilities = prediction.predictImage(os.path.join(execution_path, "giraffe.jpg"), result_count=5 )

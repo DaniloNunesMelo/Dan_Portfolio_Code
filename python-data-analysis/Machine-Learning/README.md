@@ -8,19 +8,24 @@ pip3 install imageai --upgrade
 ```bash 
 > python brain.py
 ## Error
-2020-04-14 21:48:52.012724: I tensorflow/core/platform/cpu_feature_guard.cc:142] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
-2020-04-14 21:48:52.018499: I tensorflow/core/platform/profile_utils/cpu_utils.cc:94] CPU Frequency: 1991995000 Hz
-2020-04-14 21:48:52.019854: I tensorflow/compiler/xla/service/service.cc:168] XLA service 0x55beecb755b0 initialized for platform Host (this does not guarantee that XLA will be used). Devices:
-2020-04-14 21:48:52.019891: I tensorflow/compiler/xla/service/service.cc:176]   StreamExecutor device (0): Host, Default Version
+> python brain.py
+2021-01-29 09:24:44.255065: I tensorflow/compiler/jit/xla_cpu_device.cc:41] Not creating XLA devices, tf_xla_enable_xla_devices not set
+2021-01-29 09:24:44.255756: I tensorflow/core/platform/cpu_feature_guard.cc:142] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 FMA
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+brain.py:10: MatplotlibDeprecationWarning: '.predictImage()' has been deprecated! Please use 'classifyImage()' instead.
+  predictions, probabilities = prediction.predictImage(os.path.join(execution_path, "giraffe.jpg"), result_count=5 )
+2021-01-29 09:24:45.503352: I tensorflow/compiler/mlir/mlir_graph_optimization_pass.cc:116] None of the MLIR optimization passes are enabled (registered 2)
+2021-01-29 09:24:45.503808: I tensorflow/core/platform/profile_utils/cpu_utils.cc:112] CPU Frequency: 1991995000 Hz
+Downloading data from https://storage.googleapis.com/download.tensorflow.org/data/imagenet_class_index.json
 ```
 
-## answers
+## Result
 
-ruffed_grouse  :  28.50576341152191
-prairie_chicken  :  10.893949121236801
-cheetah  :  10.37883311510086
-German_short-haired_pointer  :  7.698050141334534
-partridge  :  6.035150587558746
+- leopard  :  1.841738075017929
+- lynx  :  1.8286250531673431
+- cheetah  :  1.8222730606794357
+- jaguar  :  1.6499241814017296
+- impala  :  0.8933961391448975
 
 
 Currently supported shells are:
