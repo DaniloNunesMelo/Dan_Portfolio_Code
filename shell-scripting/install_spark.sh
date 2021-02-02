@@ -1,7 +1,7 @@
 #!/bin/bash
 # Danilo Nunes Melo
 # Creation date 01/08/2021
-# Update date 01/16/2021
+# Update date 02/22/2021
 # Spark Installation Automated
 # Version 1.0
 
@@ -15,7 +15,7 @@ if [[ ${EUID} -eq 0 ]]
        exit
 fi
 
-if [[ $# -ne 1 ]]
+if [[ $# -gt 1 ]]
      then
        echo "=== Just one argument allowed: Spark Version ==="
        exit
@@ -57,6 +57,14 @@ if [[ $? -eq 0 ]]
        echo "=== Download not completed ==="
        exit
 fi
+
+## sha512sum
+
+wget ${url_spark}${spk_vrn}'.sha512' -P /tmp
+
+echo "=== sha512sum ==="
+cat ${spk_vrn}'.sha512' | tr '\n' ' '| tr -d ' ' | awk -F ':' '{ print $2 "\t" $1 }'| sha512sum -c -
+
 
 echo "=== Starting unpacking ==="
 

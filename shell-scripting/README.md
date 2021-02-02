@@ -1,4 +1,5 @@
 # Installing Spark
+
 ```ascii
 ██████╗  █████╗ ███████╗██╗  ██╗
 ██╔══██╗██╔══██╗██╔════╝██║  ██║
@@ -6,82 +7,79 @@
 ██╔══██╗██╔══██║╚════██║██╔══██║
 ██████╔╝██║  ██║███████║██║  ██║
 ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝
-```                                
+```
 
 ```ascii
       ____              __
      / __/__  ___ _____/ /__
     _\ \/ _ \/ _ `/ __/  '_/
-   /___/ .__/\_,_/_/ /_/\_\   version 3.0.0-preview2
+   /___/ .__/\_,_/_/ /_/\_\
       /_/
 ```
 
-```bash
-#!/bin/bash
-#https://downloads.apache.org/spark/
-pwd
-#wget https://downloads.apache.org/spark/spark-3.0.0-preview2/spark-3.0.0-preview2-bin-hadoop3.2.tgz -P /tmp
-if [[ $? -eq 0 ]]
-     then
-       echo "Spark Downloaded successfully"
-     else
-       echo "Download not completed"
-       exit
-fi
-```
+1. Root access validation
 
-## Checking integrity
+2. Argument validation (The version can be passed as argument)
 
-```bash
-#wget https://downloads.apache.org/spark/spark-3.0.0-preview2/spark-3.0.0-preview2-bin-hadoop3.2.tgz.asc -P /tmp
-gpg --verify /tmp/spark-3.0.0-preview2-bin-hadoop3.2.tgz.asc /tmp/spark-3.0.0-preview2-bin-hadoop3.2.tgz
-```
+3. Prepare URL
 
-## Unpacking
+4. Check parameter or Web Scraping to choose the version
+
+5. Download the version
+
+6. Checking integrity
+
+7. Unpacking
+
+8. Env Variables Configuration
+
+> Selecting Spark Version
 
 ```bash
-echo "Starting  unpacking"
-
-cd /usr/local/
-pwd
-tar -xvf /tmp/spark-3.0.0-preview2-bin-hadoop3.2.tgz
-
-if [[ $? -eq 0 ]]
-     then
-       echo "Files unzipped successfully"
-     else
-       echo "Error while unzipping"
-       exit
-fi
-echo "Starting configuration"
+root@4be53fe57784:/spark# ./install_spark.sh
+=== You have root access ===
+1) SparkR_3.0.1.tar.gz                    4) spark-3.0.1-bin-hadoop2.7.tgz          7) spark-3.0.1.tgz
+2) pyspark-3.0.1.tar.gz                   5) spark-3.0.1-bin-hadoop3.2.tgz
+3) spark-3.0.1-bin-hadoop2.7-hive1.2.tgz  6) spark-3.0.1-bin-without-hadoop.tgz
+Enter the Spark Version to install : 5
 ```
 
-## Creation Link
+> using Dockerfile and passing as argument
 
 ```bash
-sudo ln -s /usr/local/spark3.0/ /usr/local/spark
-
-#sudo chown -RH spark: /usr/local/spark
-
-sudo sh -c 'chmod +x /usr/local/spark/bin/*.sh'
-
+-> docker build --tag dan-spark-base:v1.0 .
+[+] Building 79.2s (10/10) FINISHED
+ => [internal] load build definition from Dockerfile                                                                                                   0.0s
+ => => transferring dockerfile: 38B                                                                                                                    0.0s
+ => [internal] load .dockerignore                                                                                                                      0.0s
+ => => transferring context: 2B                                                                                                                        0.0s
+ => [internal] load metadata for docker.io/library/ubuntu:latest                                                                                       2.4s
+ => [1/5] FROM docker.io/library/ubuntu@sha256:703218c0465075f4425e58fac086e09e1de5c340b12976ab9eb8ad26615c3715                                        6.4s
+ => => resolve docker.io/library/ubuntu@sha256:703218c0465075f4425e58fac086e09e1de5c340b12976ab9eb8ad26615c3715                                        0.0s
+ => => sha256:703218c0465075f4425e58fac086e09e1de5c340b12976ab9eb8ad26615c3715 1.20kB / 1.20kB                                                         0.0s
+ => => sha256:3093096ee188f8ff4531949b8f6115af4747ec1c58858c091c8cb4579c39cc4e 943B / 943B                                                             0.0s
+ => => sha256:f63181f19b2fe819156dcb068b3b5bc036820bec7014c5f77277cfa341d4cb5e 3.31kB / 3.31kB                                                         0.0s
+ => => sha256:83ee3a23efb7c75849515a6d46551c608b255d8402a4d3753752b88e0dc188fa 28.57MB / 28.57MB                                                       4.7s
+ => => sha256:db98fc6f11f08950985a203e07755c3262c680d00084f601e7304b768c83b3b1 843B / 843B                                                             0.5s
+ => => sha256:f611acd52c6cad803b06b5ba932e4aabd0f2d0d5a4d050c81de2832fcb781274 162B / 162B                                                             0.6s
+ => => extracting sha256:83ee3a23efb7c75849515a6d46551c608b255d8402a4d3753752b88e0dc188fa                                                              1.3s
+ => => extracting sha256:db98fc6f11f08950985a203e07755c3262c680d00084f601e7304b768c83b3b1                                                              0.0s
+ => => extracting sha256:f611acd52c6cad803b06b5ba932e4aabd0f2d0d5a4d050c81de2832fcb781274                                                              0.0s
+ => [internal] load build context                                                                                                                      0.0s
+ => => transferring context: 3.12kB                                                                                                                    0.0s
+ => [2/5] RUN apt-get update &&     apt-get install -y supervisor &&     apt-get install -y wget &&     apt-get install -y curl &&     apt-get clean  30.4s
+ => [3/5] RUN mkdir spark                                                                                                                              0.5s
+ => [4/5] COPY ./install_spark.sh spark                                                                                                                0.1s
+ => [5/5] RUN ./spark/install_spark.sh "spark-3.0.1-bin-hadoop3.2.tgz"                                                                                37.3s
+ => exporting to image                                                                                                                                 2.0s
+ => => exporting layers                                                                                                                                2.0s
+ => => writing image sha256:85a62a8e25b2e0dec87abb5024359ee0cfe9f76ee7acbf9c5c957aa33f9ac209                                                           0.0s
+ => => naming to docker.io/library/dan-spark-base:v1.0                                                                                                 0.0s
 ```
 
-[spark-local](http://localhost:8080/)
+## Adtional configuration
 
-export SPARK_HOME=/usr/local/spark
-
-* Linking Spark and Jupyter
-
-```bash
-export PYSPARK_DRIVER_PYTHON=jupyter
-export PYSPARK_DRIVER_PYTHON_OPTS='notebook'
-export PYSPARK_PYTHON=python3
-
-
-```
-
-## Start a standalone master server
+### Start a standalone master server
 
 * At this point you can browse to <http://localhost:8080/> to view the status screen.
 sudo $SPARK_HOME/sbin/start-master.sh
