@@ -71,11 +71,18 @@ echo "=== Starting unpacking ==="
 # Removing .tgz from spark version
 spk_fld=$(echo ${spk_vrn} | awk '{ print substr( $0, 0, length($0)-4 ) }')
 
-mkdir /usr/local/spark
+if [ -d "/usr/local/spark" ] 
+then
+    echo "===Directory /usr/local/spark exists.===" 
+else
+    echo "===Creating Spark directory==="
+    mkdir /usr/local/spark
+    echo "===Extracting files==="
+    tar -xf /tmp/${spk_vrn} -C /tmp
+    echo "===Moving files from Temp to Spark Directory==="
+    mv /tmp/${spk_fld}/* /usr/local/spark
 
-tar -xvf /tmp/${spk_vrn} -C /tmp
-
-mv /tmp/${spk_fld}/* /usr/local/spark
+fi
 
 if [[ $? -eq 0 ]]
      then

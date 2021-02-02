@@ -44,7 +44,7 @@ root@4be53fe57784:/spark# ./install_spark.sh
 Enter the Spark Version to install : 5
 ```
 
-> using Dockerfile and passing as argument
+> Using Dockerfile and passing as argument
 
 ```bash
 -> docker build --tag dan-spark-base:v1.0 .
