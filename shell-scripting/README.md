@@ -17,6 +17,10 @@
       /_/
 ```
 
+## Script
+
+`install_spark.sh`
+
 1. Root access validation
 
 2. Argument validation (The version can be passed as argument)
