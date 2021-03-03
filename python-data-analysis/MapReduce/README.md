@@ -1,7 +1,9 @@
-# Simple example of Mapreduce using Python
+# MapReduce
 
-argv[1] = CSV File
-argv[2] = Country Name
+## Simple example of MapReduce using Python
+
+1. argv[1] = CSV File
+2. argv[2] = Country Name
 
 ```bash
 > python getImmigrationCountryTotal.py MIG_ITALY_NO_QUOTE.csv Australia
