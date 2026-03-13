@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Spark
+*.log
+derby.log
+metastore_db/
+spark-warehouse/
+
+# Output
+output/TRANSACTIONS.csv
+output/*.csv
