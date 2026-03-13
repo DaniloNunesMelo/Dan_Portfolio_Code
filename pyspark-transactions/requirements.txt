@@ -1,0 +1,7 @@
+# Runtime — Spark 4.0
+# Requires: Java 17 or 21, Python 3.9+
+pyspark>=4.0.0,<4.1.0
+requests>=2.31
+
+# Tests
+pytest>=7.0
