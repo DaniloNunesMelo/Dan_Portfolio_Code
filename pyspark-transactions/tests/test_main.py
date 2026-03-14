@@ -5,14 +5,9 @@ Covers build_nse_lookup_pairs with an injected stub hash function
 """
 
 from __future__ import annotations
-
 import os
-import tempfile
-
 import pytest
-
 from e3_contracts_to_transactions.main import build_nse_lookup_pairs
-
 
 class TestBuildNseLookupPairs:
 
