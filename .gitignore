@@ -19,5 +19,12 @@ metastore_db/
 spark-warehouse/
 
 # Output
-output/TRANSACTIONS.csv
-output/*.csv
+pyspark-transactions/output/TRANSACTIONS.csv
+pyspark-transactions/output/*.csv
+
+# Old projects
+swift/
+shell-scripting/
+python-data-analysis/
+spark-cluster/
+spark-data-analysis/

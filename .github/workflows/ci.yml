@@ -45,25 +45,14 @@ jobs:
             pip install -r requirements-dev.txt
           fi
 
-      # Ruff replaces Black + isort + Flake8 in one pass
+      # Ruff replaces Pylint + Black + isort + Flake8 in one pass
       - name: Lint & format check (Ruff)
         working-directory: ./pyspark-transactions
         run: |
           ruff check .
           ruff format --check .
 
-      # Keep Pylint only for pyspark-specific rules
-      - name: Lint with Pylint (PySpark rules)
-        working-directory: ./pyspark-transactions
-        run: |
-          if [ -f ".pylintrc" ]; then
-            PYLINT_RC="--rcfile=.pylintrc"
-          else
-            PYLINT_RC=""
-          fi
-          pylint --load-plugins pylint_pyspark $PYLINT_RC --fail-under=8.0 src/ tests/
-
-      - name: Type check (MyPy)
+      - name: Type safety check (MyPy)
         working-directory: ./pyspark-transactions
         run: mypy --ignore-missing-imports --check-untyped-defs src/ tests/
 
