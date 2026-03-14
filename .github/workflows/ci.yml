@@ -1,5 +1,4 @@
 name: CI – PySpark E3 Trans Tests
-
 on:
   push:
     branches: [main, master]
@@ -15,7 +14,6 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.11", "3.12"]
-
     steps:
       - uses: actions/checkout@v4.2.2
 
@@ -47,21 +45,15 @@ jobs:
             pip install -r requirements-dev.txt
           fi
 
-      - name: Format check (Black)
-        working-directory: ./pyspark-transactions
-        run: black --check .
-
-      - name: Import order check (isort)
-        working-directory: ./pyspark-transactions
-        run: isort --check-only --diff .
-
-      - name: Lint with Flake8
+      # Ruff replaces Black + isort + Flake8 in one pass
+      - name: Lint & format check (Ruff)
         working-directory: ./pyspark-transactions
         run: |
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+          ruff check .
+          ruff format --check .
 
-      - name: Lint with Pylint
+      # Keep Pylint only for pyspark-specific rules
+      - name: Lint with Pylint (PySpark rules)
         working-directory: ./pyspark-transactions
         run: |
           if [ -f ".pylintrc" ]; then
@@ -69,24 +61,24 @@ jobs:
           else
             PYLINT_RC=""
           fi
-          pylint --load-plugins pylint_pyspark $PYLINT_RC --fail-under=8.0 src/ tests/  # adjust paths
+          pylint --load-plugins pylint_pyspark $PYLINT_RC --fail-under=8.0 src/ tests/
 
-      - name: Type check with MyPy
+      - name: Type check (MyPy)
         working-directory: ./pyspark-transactions
         run: mypy --ignore-missing-imports --check-untyped-defs src/ tests/
 
       - name: Run tests with coverage
         working-directory: ./pyspark-transactions
         run: |
-          mkdir -p output
-          pytest -v --cov=src --cov-report=xml --cov-report=term-missing 2>&1 | tee output/test.log
+          mkdir -p ci-reports
+          pytest -v --cov=src --cov-report=xml --cov-report=term-missing 2>&1 | tee ci-reports/test.log
 
       - name: Upload test logs
         uses: actions/upload-artifact@v4.6.0
         if: always()
         with:
           name: test-logs-python-${{ matrix.python-version }}
-          path: ./pyspark-transactions/output/test.log
+          path: ./pyspark-transactions/ci-reports/test.log
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4.6.0
