@@ -1,0 +1,6 @@
+[tool.coverage.run]
+source = ["e3_contracts_to_transactions"]
+relative_files = true
+
+[tool.coverage.report]
+show_missing = true

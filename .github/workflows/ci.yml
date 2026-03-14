@@ -63,7 +63,7 @@ jobs:
         uses: py-cov-action/python-coverage-comment-action@v3
         with:
           GITHUB_TOKEN: ${{ github.token }}
-          COVERAGE_PATH: ./pyspark-transactions
+          COVERAGE_PATH: pyspark-transactions
 
       - name: Upload test logs
         uses: actions/upload-artifact@v6
