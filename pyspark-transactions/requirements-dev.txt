@@ -1,3 +1,8 @@
+# Runtime
+pyspark>=4.0.0,<4.1.0
+requests>=2.31
+types-requests
+
 # Testing
 pytest>=8.0.0
 pytest-cov>=5.0.0
