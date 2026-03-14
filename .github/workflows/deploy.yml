@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true  # Optional
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true  # Opt into Node.js 24 now
 
 jobs:
   run-pipeline:
@@ -17,16 +17,16 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2  # Latest patch version
 
       - name: Set up Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v4.7.0  # Latest patch version
         with:
           distribution: temurin
           java-version: "17"
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.4.0  # Latest patch version
         with:
           python-version: "3.12"
 
@@ -48,7 +48,7 @@ jobs:
             --output ../output/TRANSACTIONS.csv
       
       - name: Upload output as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.0  # Latest patch version
         with:
           name: transactions-output
           path: output/TRANSACTIONS.csv
