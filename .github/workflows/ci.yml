@@ -54,7 +54,7 @@ jobs:
 
       - name: Type safety check (MyPy)
         working-directory: ./pyspark-transactions
-        run: mypy --ignore-missing-imports --check-untyped-defs src/ tests/
+        run: mypy --ignore-missing-imports --check-untyped-defs e3_contracts_to_transactions
 
       - name: Run tests with coverage
         working-directory: ./pyspark-transactions
