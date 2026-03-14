@@ -7,19 +7,17 @@ on:
     branches: [main, master]
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true  # Opt into Node.js 24 now
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   test:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
         python-version: ["3.11", "3.12"]
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v4.2.2
 
       - name: Set up Java 17
         uses: actions/setup-java@v4.7.0
@@ -32,57 +30,60 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('pyspark-transactions/requirements.txt', 'pyspark-transactions/requirements-dev.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
       - name: Install dependencies
         working-directory: ./pyspark-transactions
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          # Install linting tools
-          pip install pylint pylint-pyspark pylint-pytest pylint-pydantic pylint-pandas flake8 black isort mypy
+          if [ -f requirements-dev.txt ]; then
+            pip install -r requirements-dev.txt
+          fi
 
-      - name: Verify Java
-        run: java -version
-
-      - name: Check code formatting with Black
+      - name: Format check (Black)
         working-directory: ./pyspark-transactions
-        run: |
-          black --check . || echo "Code formatting issues detected. Run 'black .' to fix."
+        run: black --check .
 
-      - name: Check import ordering with isort
+      - name: Import order check (isort)
         working-directory: ./pyspark-transactions
-        run: |
-          isort --check-only --diff . || echo "Import ordering issues detected. Run 'isort .' to fix."
+        run: isort --check-only --diff .
 
       - name: Lint with Flake8
         working-directory: ./pyspark-transactions
         run: |
-          # Stop the build if there are Python syntax errors or undefined names
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          # Exit-zero treats all errors as warnings
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-      - name: Lint with Pylint (PySpark compatible)
+      - name: Lint with Pylint
         working-directory: ./pyspark-transactions
         run: |
-          # Run pylint with PySpark plugin and custom configuration
-          pylint --load-plugins pylint_pyspark \
-                 --rcfile=.pylintrc \
-                 --fail-under=7.0 \
-                 $(find . -name "*.py" -not -path "./tests/*") || echo "Pylint issues found - score below threshold"
+          if [ -f ".pylintrc" ]; then
+            PYLINT_RC="--rcfile=.pylintrc"
+          else
+            PYLINT_RC=""
+          fi
+          pylint --load-plugins pylint_pyspark $PYLINT_RC --fail-under=8.0 src/ tests/  # adjust paths
 
       - name: Type check with MyPy
         working-directory: ./pyspark-transactions
-        run: |
-          mypy . --ignore-missing-imports --disallow-untyped-defs --check-untyped-defs || echo "Type checking issues found"
+        run: mypy --ignore-missing-imports --check-untyped-defs src/ tests/
 
       - name: Run tests with coverage
         working-directory: ./pyspark-transactions
         run: |
-          pytest -v --cov=. --cov-report=xml --cov-report=term-missing 2>&1 | tee output/test.log
+          mkdir -p output
+          pytest -v --cov=src --cov-report=xml --cov-report=term-missing 2>&1 | tee output/test.log
 
-      - name: Upload test logs as artifact
+      - name: Upload test logs
         uses: actions/upload-artifact@v4.6.0
-        if: always()  # Upload even if tests fail
+        if: always()
         with:
           name: test-logs-python-${{ matrix.python-version }}
           path: ./pyspark-transactions/output/test.log
