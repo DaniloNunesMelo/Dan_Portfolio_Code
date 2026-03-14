@@ -56,8 +56,7 @@ def get_spark(app_name: str = "transactions_task") -> SparkSession:
         )
 
     return (
-        SparkSession.builder
-        .appName(app_name)
+        SparkSession.builder.appName(app_name)
         .master("local[*]")
         .config("spark.driver.memory", "1g")
         .getOrCreate()
@@ -134,5 +133,7 @@ def run(argv: list[str]) -> int:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    logging.basicConfig(
+        level=logging.INFO, format="%(levelname)s %(name)s: %(message)s"
+    )
     raise SystemExit(run(sys.argv[1:]))

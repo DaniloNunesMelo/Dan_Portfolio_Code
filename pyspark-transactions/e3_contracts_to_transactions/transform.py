@@ -22,6 +22,7 @@ from pyspark.sql.types import DecimalType
 # Column-level mapping helpers
 # ---------------------------------------------------------------------------
 
+
 def map_transaction_type(claim_type_col: Column) -> Column:
     """claim_type 2 -> Corporate, 1 -> Private, else Unknown."""
     return (
@@ -47,9 +48,8 @@ def extract_source_system_id(claim_id_col: Column) -> Column:
     attempting to cast an empty string to int (which would throw).
     """
     digits = F.regexp_extract(claim_id_col, r"(\d+)$", 1)
-    return (
-        F.when(digits != F.lit(""), digits.cast("int"))
-        .otherwise(F.lit(None).cast("int"))
+    return F.when(digits != F.lit(""), digits.cast("int")).otherwise(
+        F.lit(None).cast("int")
     )
 
 
@@ -78,18 +78,16 @@ def cast_conformed_value(amount_col: Column) -> Column:
     that would throw under ANSI mode.
     """
     trimmed = F.trim(amount_col)
-    return (
-        F.when(
-            trimmed.isNotNull() & (trimmed != F.lit("")),
-            trimmed.cast(DecimalType(16, 5)),
-        )
-        .otherwise(F.lit(None).cast(DecimalType(16, 5)))
-    )
+    return F.when(
+        trimmed.isNotNull() & (trimmed != F.lit("")),
+        trimmed.cast(DecimalType(16, 5)),
+    ).otherwise(F.lit(None).cast(DecimalType(16, 5)))
 
 
 # ---------------------------------------------------------------------------
 # DataFrame-level join helpers
 # ---------------------------------------------------------------------------
+
 
 def prepare_contracts(contracts_df: DataFrame) -> DataFrame:
     """Select and normalise the columns needed for joining."""
@@ -122,7 +120,10 @@ def join_claims_to_contracts(
     return claims.join(
         contracts,
         on=(
-            (claims["CONTRACT_SOURCE_SYSTEM_RAW"] == contracts["CONTRACT_SOURCE_SYSTEM_RAW"])
+            (
+                claims["CONTRACT_SOURCE_SYSTEM_RAW"]
+                == contracts["CONTRACT_SOURCE_SYSTEM_RAW"]
+            )
             & (claims["CLAIM_CONTRACT_ID"] == contracts["CONTRACT_CONTRACT_ID"])
         ),
         how="left",
@@ -137,6 +138,7 @@ def join_nse_lookup(claims: DataFrame, nse_lookup_df: DataFrame) -> DataFrame:
 # ---------------------------------------------------------------------------
 # Pipeline entrypoint
 # ---------------------------------------------------------------------------
+
 
 def build_transactions(
     contracts_df: DataFrame,
@@ -161,12 +163,15 @@ def build_transactions(
     joined = join_claims_to_contracts(claims, contracts)
 
     return (
-        joined
-        .withColumn("CONTRACT_SOURCE_SYSTEM", F.lit("Europe 3"))
-        .withColumn("CONTRACT_SOURCE_SYSTEM_ID", F.col("CONTRACT_CONTRACT_ID").cast("long"))
+        joined.withColumn("CONTRACT_SOURCE_SYSTEM", F.lit("Europe 3"))
+        .withColumn(
+            "CONTRACT_SOURCE_SYSTEM_ID", F.col("CONTRACT_CONTRACT_ID").cast("long")
+        )
         .withColumn("SOURCE_SYSTEM_ID", extract_source_system_id(F.col("CLAIM_ID")))
         .withColumn("TRANSACTION_TYPE", map_transaction_type(F.col("CLAIM_TYPE")))
-        .withColumn("TRANSACTION_DIRECTION", map_transaction_direction(F.col("CLAIM_ID")))
+        .withColumn(
+            "TRANSACTION_DIRECTION", map_transaction_direction(F.col("CLAIM_ID"))
+        )
         .withColumn("CONFORMED_VALUE", cast_conformed_value(F.col("AMOUNT")))
         .withColumn("BUSINESS_DATE", parse_business_date(F.col("DATE_OF_LOSS")))
         .withColumn("CREATION_DATE", parse_creation_date(F.col("CLAIM_CREATION_DATE")))

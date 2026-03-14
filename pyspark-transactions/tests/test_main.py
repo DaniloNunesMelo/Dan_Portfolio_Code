@@ -9,8 +9,8 @@ import os
 import pytest
 from e3_contracts_to_transactions.main import build_nse_lookup_pairs
 
-class TestBuildNseLookupPairs:
 
+class TestBuildNseLookupPairs:
     def _write_csv(self, tmp_dir: str, content: str) -> str:
         path = os.path.join(tmp_dir, "claims.csv")
         with open(path, "w", encoding="utf-8") as fh:

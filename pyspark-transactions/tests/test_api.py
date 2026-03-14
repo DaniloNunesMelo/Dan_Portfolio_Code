@@ -13,14 +13,15 @@ from e3_contracts_to_transactions.api import fetch_nse_id
 
 
 class TestFetchNseId:
-
     def test_returns_digest_from_json(self):
         mock_resp = Mock()
         mock_resp.status_code = 200
         mock_resp.json.return_value = {"Digest": "abc123hex"}
         mock_resp.raise_for_status = Mock()
 
-        with patch("e3_contracts_to_transactions.api.requests.get", return_value=mock_resp) as mock_get:
+        with patch(
+            "e3_contracts_to_transactions.api.requests.get", return_value=mock_resp
+        ) as mock_get:
             result = fetch_nse_id("CL_001")
 
         assert result == "abc123hex"
@@ -37,7 +38,9 @@ class TestFetchNseId:
         mock_resp.text = '{"SomeOtherField": "value"}'
         mock_resp.raise_for_status = Mock()
 
-        with patch("e3_contracts_to_transactions.api.requests.get", return_value=mock_resp):
+        with patch(
+            "e3_contracts_to_transactions.api.requests.get", return_value=mock_resp
+        ):
             with pytest.raises(ValueError, match="missing 'Digest'"):
                 fetch_nse_id("CL_001")
 
@@ -47,7 +50,9 @@ class TestFetchNseId:
         mock_resp = Mock()
         mock_resp.raise_for_status.side_effect = req.HTTPError("500 Server Error")
 
-        with patch("e3_contracts_to_transactions.api.requests.get", return_value=mock_resp):
+        with patch(
+            "e3_contracts_to_transactions.api.requests.get", return_value=mock_resp
+        ):
             with pytest.raises(req.HTTPError):
                 fetch_nse_id("CL_001")
 
@@ -56,7 +61,9 @@ class TestFetchNseId:
         mock_resp.json.return_value = {"Digest": "deadbeef"}
         mock_resp.raise_for_status = Mock()
 
-        with patch("e3_contracts_to_transactions.api.requests.get", return_value=mock_resp) as mock_get:
+        with patch(
+            "e3_contracts_to_transactions.api.requests.get", return_value=mock_resp
+        ) as mock_get:
             result = fetch_nse_id("CL_X", base_url="http://localhost:9999/hash")
 
         assert result == "deadbeef"

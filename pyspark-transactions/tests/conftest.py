@@ -30,8 +30,7 @@ def spark() -> SparkSession:
         )
 
     session = (
-        SparkSession.builder
-        .appName("transactions_tests")
+        SparkSession.builder.appName("transactions_tests")
         .master("local[1]")
         .config("spark.sql.session.timeZone", "UTC")
         .config("spark.ui.enabled", "false")
@@ -47,6 +46,7 @@ def spark() -> SparkSession:
 # ------------------------------------------------------------------
 # Helper factories – every test builds only the rows it needs
 # ------------------------------------------------------------------
+
 
 def make_contracts(spark: SparkSession, rows: list[tuple]) -> DataFrame:
     """Build a CONTRACT DataFrame from a list of tuples.
