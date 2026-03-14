@@ -5,6 +5,10 @@ on:
   pull_request:
     branches: [main, master]
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -49,12 +53,17 @@ jobs:
         working-directory: ./pyspark-transactions
         run: |
           mkdir -p ci-reports
-          pytest -v --cov=e3_contracts_to_transactions --cov-report=term-missing 2>&1 | tee ci-reports/pytest.log
+          pytest -v \
+            --cov=e3_contracts_to_transactions \
+            --cov-report=term-missing \
+            --cov-report=xml \
+            2>&1 | tee ci-reports/pytest.log
 
       - name: Coverage comment
         uses: py-cov-action/python-coverage-comment-action@v3
         with:
           GITHUB_TOKEN: ${{ github.token }}
+          COVERAGE_PATH: ./pyspark-transactions
 
       - name: Upload test logs
         uses: actions/upload-artifact@v6
