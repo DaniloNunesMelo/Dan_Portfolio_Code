@@ -37,15 +37,11 @@ def default_config() -> dict:
         },
         "date_of_loss_format": "dd.MM.yyyy",
         "creation_date_format": "dd.MM.yyyy HH:mm",
-        "hashify_base_url": (
-            "https://api.hashify.net/hash/md4/hex"
-        ),
+        "hashify_base_url": ("https://api.hashify.net/hash/md4/hex"),
         "hashify_response_field": "Digest",
         "claim_contract_join": {
             "claim_contract_id_col": "CONTRACT_ID",
-            "claim_source_system_col": (
-                "CONTRACT_SOURCE_SYSTEM"
-            ),
+            "claim_source_system_col": ("CONTRACT_SOURCE_SYSTEM"),
             "contract_id_col": "CONTRACT_ID",
             "contract_source_system_col": "SOURCE_SYSTEM",
         },

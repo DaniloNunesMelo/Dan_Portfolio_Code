@@ -9,9 +9,7 @@ import requests
 
 from e3_contracts_to_transactions.api import make_hashify_fn
 
-_PATCH_TARGET = (
-    "e3_contracts_to_transactions.api.requests.get"
-)
+_PATCH_TARGET = "e3_contracts_to_transactions.api.requests.get"
 
 
 class TestMakeHashifyFn:
@@ -20,9 +18,7 @@ class TestMakeHashifyFn:
         mock_resp.json.return_value = {"Digest": "abc123def"}
         mock_resp.raise_for_status = MagicMock()
 
-        with patch(
-            _PATCH_TARGET, return_value=mock_resp
-        ) as mock_get:
+        with patch(_PATCH_TARGET, return_value=mock_resp) as mock_get:
             fn = make_hashify_fn()
             result = fn("CL_123")
 
@@ -39,14 +35,10 @@ class TestMakeHashifyFn:
 
     def test_custom_base_url_and_field(self):
         mock_resp = MagicMock()
-        mock_resp.json.return_value = {
-            "Hash": "custom_hash"
-        }
+        mock_resp.json.return_value = {"Hash": "custom_hash"}
         mock_resp.raise_for_status = MagicMock()
 
-        with patch(
-            _PATCH_TARGET, return_value=mock_resp
-        ):
+        with patch(_PATCH_TARGET, return_value=mock_resp):
             fn = make_hashify_fn(
                 base_url="https://custom.api/hash",
                 response_field="Hash",
@@ -58,27 +50,19 @@ class TestMakeHashifyFn:
 
     def test_http_error_raises(self):
         mock_resp = MagicMock()
-        mock_resp.raise_for_status.side_effect = (
-            requests.HTTPError("500 Server Error")
-        )
+        mock_resp.raise_for_status.side_effect = requests.HTTPError("500 Server Error")
 
-        with patch(
-            _PATCH_TARGET, return_value=mock_resp
-        ):
+        with patch(_PATCH_TARGET, return_value=mock_resp):
             fn = make_hashify_fn()
             with pytest.raises(requests.HTTPError):
                 fn("CL_999")
 
     def test_missing_field_raises_key_error(self):
         mock_resp = MagicMock()
-        mock_resp.json.return_value = {
-            "OtherField": "value"
-        }
+        mock_resp.json.return_value = {"OtherField": "value"}
         mock_resp.raise_for_status = MagicMock()
 
-        with patch(
-            _PATCH_TARGET, return_value=mock_resp
-        ):
+        with patch(_PATCH_TARGET, return_value=mock_resp):
             fn = make_hashify_fn()
             with pytest.raises(KeyError):
                 fn("CL_1")

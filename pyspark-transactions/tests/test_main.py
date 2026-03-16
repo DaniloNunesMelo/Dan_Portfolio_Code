@@ -25,9 +25,7 @@ from e3_contracts_to_transactions.main import (
 
 class TestParseArgs:
     def test_required_args(self):
-        args = parse_args(
-            ["--contracts", "c.csv", "--claims", "cl.csv"]
-        )
+        args = parse_args(["--contracts", "c.csv", "--claims", "cl.csv"])
         assert args.contracts == "c.csv"
         assert args.claims == "cl.csv"
         assert args.output == "output/TRANSACTIONS.csv"
@@ -85,35 +83,23 @@ class TestCreateSparkSession:
         assert spark.sparkContext is not None
 
     def test_custom_app_name(self):
-        with patch(
-            "e3_contracts_to_transactions.main.SparkSession"
-        ) as mock_ss:
+        with patch("e3_contracts_to_transactions.main.SparkSession") as mock_ss:
             mock_builder = MagicMock()
             mock_ss.builder = mock_builder
-            mock_builder.appName.return_value = (
-                mock_builder
-            )
+            mock_builder.appName.return_value = mock_builder
             mock_builder.master.return_value = mock_builder
-            mock_builder.getOrCreate.return_value = (
-                MagicMock(spec=SparkSession)
-            )
+            mock_builder.getOrCreate.return_value = MagicMock(spec=SparkSession)
 
             create_spark_session("CustomApp")
 
-            mock_builder.appName.assert_called_once_with(
-                "CustomApp"
-            )
-            mock_builder.master.assert_called_once_with(
-                "local[*]"
-            )
+            mock_builder.appName.assert_called_once_with("CustomApp")
+            mock_builder.master.assert_called_once_with("local[*]")
 
 
 # -- run_pipeline ----------------------------------------------
 
 
-_HASHIFY_PATCH = (
-    "e3_contracts_to_transactions.main.make_hashify_fn"
-)
+_HASHIFY_PATCH = "e3_contracts_to_transactions.main.make_hashify_fn"
 
 
 class TestRunPipeline:
@@ -150,28 +136,20 @@ class TestRunPipeline:
             },
             "date_of_loss_format": "dd.MM.yyyy",
             "creation_date_format": "dd.MM.yyyy HH:mm",
-            "hashify_base_url": (
-                "https://api.hashify.net/hash/md4/hex"
-            ),
+            "hashify_base_url": ("https://api.hashify.net/hash/md4/hex"),
             "hashify_response_field": "Digest",
             "claim_contract_join": {
                 "claim_contract_id_col": "CONTRACT_ID",
-                "claim_source_system_col": (
-                    "CONTRACT_SOURCE_SYSTEM"
-                ),
+                "claim_source_system_col": ("CONTRACT_SOURCE_SYSTEM"),
                 "contract_id_col": "CONTRACT_ID",
-                "contract_source_system_col": (
-                    "SOURCE_SYSTEM"
-                ),
+                "contract_source_system_col": ("SOURCE_SYSTEM"),
             },
             "output_header": True,
             "output_delimiter": ",",
         }
         return contracts, claims, output, config
 
-    def test_end_to_end_produces_file(
-        self, spark, pipeline_files
-    ):
+    def test_end_to_end_produces_file(self, spark, pipeline_files):
         contracts, claims, output, config = pipeline_files
 
         with patch(
@@ -192,9 +170,7 @@ class TestRunPipeline:
         assert "Corporate" in content
         assert "COINSURANCE" in content
 
-    def test_output_directory_created(
-        self, spark, pipeline_files
-    ):
+    def test_output_directory_created(self, spark, pipeline_files):
         contracts, claims, output, config = pipeline_files
         assert not output.parent.exists()
 
@@ -212,9 +188,7 @@ class TestRunPipeline:
 
         assert output.parent.exists()
 
-    def test_missing_contracts_file_raises(
-        self, spark, pipeline_files
-    ):
+    def test_missing_contracts_file_raises(self, spark, pipeline_files):
         _, claims, output, config = pipeline_files
 
         with patch(
@@ -230,9 +204,7 @@ class TestRunPipeline:
                     str(output),
                 )
 
-    def test_missing_claims_file_raises(
-        self, spark, pipeline_files
-    ):
+    def test_missing_claims_file_raises(self, spark, pipeline_files):
         contracts, _, output, config = pipeline_files
 
         with patch(

@@ -97,9 +97,7 @@ class TestAddSourceSystemId:
             ("A_123", 123),
         ],
     )
-    def test_extracts_numeric_suffix(
-        self, spark, claim_id, expected
-    ):
+    def test_extracts_numeric_suffix(self, spark, claim_id, expected):
         row = (
             claim_id,
             "S",
@@ -146,48 +144,27 @@ class TestAddTransactionType:
     def test_corporate(self, spark, default_config):
         df = _claims_df(spark, [self._row("2")])
         result = add_transaction_type(df, default_config)
-        assert (
-            result.collect()[0]["TRANSACTION_TYPE"]
-            == "Corporate"
-        )
+        assert result.collect()[0]["TRANSACTION_TYPE"] == "Corporate"
 
     def test_private(self, spark, default_config):
         df = _claims_df(spark, [self._row("1")])
         result = add_transaction_type(df, default_config)
-        assert (
-            result.collect()[0]["TRANSACTION_TYPE"]
-            == "Private"
-        )
+        assert result.collect()[0]["TRANSACTION_TYPE"] == "Private"
 
-    def test_empty_claim_type_defaults_to_unknown(
-        self, spark, default_config
-    ):
+    def test_empty_claim_type_defaults_to_unknown(self, spark, default_config):
         df = _claims_df(spark, [self._row("")])
         result = add_transaction_type(df, default_config)
-        assert (
-            result.collect()[0]["TRANSACTION_TYPE"]
-            == "Unknown"
-        )
+        assert result.collect()[0]["TRANSACTION_TYPE"] == "Unknown"
 
-    def test_null_claim_type_defaults_to_unknown(
-        self, spark, default_config
-    ):
+    def test_null_claim_type_defaults_to_unknown(self, spark, default_config):
         df = _claims_df(spark, [self._row(None)])
         result = add_transaction_type(df, default_config)
-        assert (
-            result.collect()[0]["TRANSACTION_TYPE"]
-            == "Unknown"
-        )
+        assert result.collect()[0]["TRANSACTION_TYPE"] == "Unknown"
 
-    def test_unknown_claim_type_defaults(
-        self, spark, default_config
-    ):
+    def test_unknown_claim_type_defaults(self, spark, default_config):
         df = _claims_df(spark, [self._row("99")])
         result = add_transaction_type(df, default_config)
-        assert (
-            result.collect()[0]["TRANSACTION_TYPE"]
-            == "Unknown"
-        )
+        assert result.collect()[0]["TRANSACTION_TYPE"] == "Unknown"
 
     def test_custom_mapping_from_config(self, spark):
         """Verify mapping is config-driven, not hardcoded."""
@@ -206,15 +183,11 @@ class TestAddTransactionType:
                 self._row("1"),
             ],
         )
-        result = add_transaction_type(
-            df, custom_config
-        ).collect()
+        result = add_transaction_type(df, custom_config).collect()
         assert result[0]["TRANSACTION_TYPE"] == "Government"
         assert result[1]["TRANSACTION_TYPE"] == "NGO"
         # "1" not in custom mapping
-        assert (
-            result[2]["TRANSACTION_TYPE"] == "Unclassified"
-        )
+        assert result[2]["TRANSACTION_TYPE"] == "Unclassified"
 
     def test_empty_mapping_uses_default(self, spark):
         cfg = {
@@ -223,10 +196,7 @@ class TestAddTransactionType:
         }
         df = _claims_df(spark, [self._row("2")])
         result = add_transaction_type(df, cfg)
-        assert (
-            result.collect()[0]["TRANSACTION_TYPE"]
-            == "Fallback"
-        )
+        assert result.collect()[0]["TRANSACTION_TYPE"] == "Fallback"
 
 
 # -- add_transaction_direction ---------------------------------
@@ -246,62 +216,33 @@ class TestAddTransactionDirection:
 
     def test_cl_prefix(self, spark, default_config):
         df = _claims_df(spark, [self._row("CL_123")])
-        result = add_transaction_direction(
-            df, default_config
-        )
-        assert (
-            result.collect()[0]["TRANSACTION_DIRECTION"]
-            == "COINSURANCE"
-        )
+        result = add_transaction_direction(df, default_config)
+        assert result.collect()[0]["TRANSACTION_DIRECTION"] == "COINSURANCE"
 
     def test_rx_prefix(self, spark, default_config):
         df = _claims_df(spark, [self._row("RX_456")])
-        result = add_transaction_direction(
-            df, default_config
-        )
-        assert (
-            result.collect()[0]["TRANSACTION_DIRECTION"]
-            == "REINSURANCE"
-        )
+        result = add_transaction_direction(df, default_config)
+        assert result.collect()[0]["TRANSACTION_DIRECTION"] == "REINSURANCE"
 
-    def test_cx_prefix_returns_null(
-        self, spark, default_config
-    ):
+    def test_cx_prefix_returns_null(self, spark, default_config):
         df = _claims_df(spark, [self._row("CX_789")])
-        result = add_transaction_direction(
-            df, default_config
-        )
-        assert (
-            result.collect()[0]["TRANSACTION_DIRECTION"]
-            is None
-        )
+        result = add_transaction_direction(df, default_config)
+        assert result.collect()[0]["TRANSACTION_DIRECTION"] is None
 
-    def test_u_prefix_returns_null(
-        self, spark, default_config
-    ):
+    def test_u_prefix_returns_null(self, spark, default_config):
         df = _claims_df(spark, [self._row("U_111")])
-        result = add_transaction_direction(
-            df, default_config
-        )
-        assert (
-            result.collect()[0]["TRANSACTION_DIRECTION"]
-            is None
-        )
+        result = add_transaction_direction(df, default_config)
+        assert result.collect()[0]["TRANSACTION_DIRECTION"] is None
 
     def test_custom_direction_from_config(self, spark):
         cfg = {
-            "transaction_direction_mapping": {
-                "XX": "FRONTING"
-            },
+            "transaction_direction_mapping": {"XX": "FRONTING"},
             "transaction_type_mapping": {},
             "transaction_type_default": "X",
         }
         df = _claims_df(spark, [self._row("XX_1")])
         result = add_transaction_direction(df, cfg)
-        assert (
-            result.collect()[0]["TRANSACTION_DIRECTION"]
-            == "FRONTING"
-        )
+        assert result.collect()[0]["TRANSACTION_DIRECTION"] == "FRONTING"
 
 
 # -- add_conformed_value ---------------------------------------
@@ -353,10 +294,7 @@ class TestAddBusinessDate:
         )
         df = _claims_df(spark, [row])
         result = add_business_date(df, "dd.MM.yyyy")
-        assert (
-            result.collect()[0]["BUSINESS_DATE"]
-            == date(2021, 2, 14)
-        )
+        assert result.collect()[0]["BUSINESS_DATE"] == date(2021, 2, 14)
 
     def test_null_date(self, spark):
         row = (
@@ -370,9 +308,7 @@ class TestAddBusinessDate:
         )
         df = _claims_df(spark, [row])
         result = add_business_date(df, "dd.MM.yyyy")
-        assert (
-            result.collect()[0]["BUSINESS_DATE"] is None
-        )
+        assert result.collect()[0]["BUSINESS_DATE"] is None
 
 
 # -- add_creation_date -----------------------------------------
@@ -406,9 +342,7 @@ class TestAddCreationDate:
         )
         df = _claims_df(spark, [row])
         result = add_creation_date(df, "dd.MM.yyyy HH:mm")
-        assert (
-            result.collect()[0]["CREATION_DATE"] is None
-        )
+        assert result.collect()[0]["CREATION_DATE"] is None
 
 
 # -- add_system_timestamp --------------------------------------
@@ -418,10 +352,7 @@ class TestAddSystemTimestamp:
     def test_not_null(self, spark):
         df = _claims_df(spark, [_ROW])
         result = add_system_timestamp(df)
-        assert (
-            result.collect()[0]["SYSTEM_TIMESTAMP"]
-            is not None
-        )
+        assert result.collect()[0]["SYSTEM_TIMESTAMP"] is not None
 
 
 # -- add_nse_id ------------------------------------------------
@@ -430,9 +361,7 @@ class TestAddSystemTimestamp:
 class TestAddNseId:
     def test_applies_hash_fn(self, spark):
         df = _claims_df(spark, [_ROW])
-        result = add_nse_id(
-            df, lambda cid: f"hash_{cid}"
-        )
+        result = add_nse_id(df, lambda cid: f"hash_{cid}")
         assert result.collect()[0]["NSE_ID"] == "hash_CL_1"
 
     def test_null_claim_id(self, spark):
@@ -472,22 +401,11 @@ class TestAddContractSourceSystemId:
                 )
             ],
         )
-        contracts = _contracts_df(
-            spark, [("SYS_A", "100")]
-        )
-        result = add_contract_source_system_id(
-            claims, contracts, default_config
-        )
-        assert (
-            result.collect()[0][
-                "CONTRACT_SOURCE_SYSTEM_ID"
-            ]
-            == 100
-        )
+        contracts = _contracts_df(spark, [("SYS_A", "100")])
+        result = add_contract_source_system_id(claims, contracts, default_config)
+        assert result.collect()[0]["CONTRACT_SOURCE_SYSTEM_ID"] == 100
 
-    def test_non_matching_join_returns_null(
-        self, spark, default_config
-    ):
+    def test_non_matching_join_returns_null(self, spark, default_config):
         claims = _claims_df(
             spark,
             [
@@ -502,22 +420,11 @@ class TestAddContractSourceSystemId:
                 )
             ],
         )
-        contracts = _contracts_df(
-            spark, [("SYS_A", "100")]
-        )
-        result = add_contract_source_system_id(
-            claims, contracts, default_config
-        )
-        assert (
-            result.collect()[0][
-                "CONTRACT_SOURCE_SYSTEM_ID"
-            ]
-            is None
-        )
+        contracts = _contracts_df(spark, [("SYS_A", "100")])
+        result = add_contract_source_system_id(claims, contracts, default_config)
+        assert result.collect()[0]["CONTRACT_SOURCE_SYSTEM_ID"] is None
 
-    def test_different_source_system_no_match(
-        self, spark, default_config
-    ):
+    def test_different_source_system_no_match(self, spark, default_config):
         claims = _claims_df(
             spark,
             [
@@ -532,18 +439,9 @@ class TestAddContractSourceSystemId:
                 )
             ],
         )
-        contracts = _contracts_df(
-            spark, [("SYS_A", "100")]
-        )
-        result = add_contract_source_system_id(
-            claims, contracts, default_config
-        )
-        assert (
-            result.collect()[0][
-                "CONTRACT_SOURCE_SYSTEM_ID"
-            ]
-            is None
-        )
+        contracts = _contracts_df(spark, [("SYS_A", "100")])
+        result = add_contract_source_system_id(claims, contracts, default_config)
+        assert result.collect()[0]["CONTRACT_SOURCE_SYSTEM_ID"] is None
 
 
 # -- build_transactions (end-to-end) --------------------------
@@ -586,9 +484,7 @@ class TestBuildTransactions:
         ]
         assert result.columns == expected_cols
 
-    def test_single_row_values(
-        self, spark, default_config
-    ):
+    def test_single_row_values(self, spark, default_config):
         claims = _claims_df(
             spark,
             [
@@ -614,7 +510,5 @@ class TestBuildTransactions:
         assert row["CONTRACT_SOURCE_SYSTEM"] == "Europe 3"
         assert row["SOURCE_SYSTEM_ID"] == 123
         assert row["TRANSACTION_TYPE"] == "Corporate"
-        assert (
-            row["TRANSACTION_DIRECTION"] == "COINSURANCE"
-        )
+        assert row["TRANSACTION_DIRECTION"] == "COINSURANCE"
         assert row["NSE_ID"] == "deadbeef"

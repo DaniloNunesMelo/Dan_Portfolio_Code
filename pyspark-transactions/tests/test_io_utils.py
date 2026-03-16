@@ -44,32 +44,22 @@ class TestReadCsv:
             encoding="utf-8",
         )
 
-        df = read_csv(
-            spark, str(csv_file), infer_schema=True
-        )
+        df = read_csv(spark, str(csv_file), infer_schema=True)
         rows = df.collect()
         assert rows[0]["AGE"] == 30
 
-    def test_reads_with_custom_delimiter(
-        self, spark, tmp_path
-    ):
+    def test_reads_with_custom_delimiter(self, spark, tmp_path):
         csv_file = tmp_path / "test.tsv"
-        csv_file.write_text(
-            "NAME\tAGE\nAlice\t30\n", encoding="utf-8"
-        )
+        csv_file.write_text("NAME\tAGE\nAlice\t30\n", encoding="utf-8")
 
-        df = read_csv(
-            spark, str(csv_file), delimiter="\t"
-        )
+        df = read_csv(spark, str(csv_file), delimiter="\t")
         rows = df.collect()
         assert len(rows) == 1
         assert rows[0]["NAME"] == "Alice"
 
     def test_reads_without_header(self, spark, tmp_path):
         csv_file = tmp_path / "noheader.csv"
-        csv_file.write_text(
-            "Alice,30\nBob,25\n", encoding="utf-8"
-        )
+        csv_file.write_text("Alice,30\nBob,25\n", encoding="utf-8")
 
         df = read_csv(spark, str(csv_file), header=False)
         rows = df.collect()
@@ -77,20 +67,12 @@ class TestReadCsv:
         assert rows[0]["_c0"] == "Alice"
 
     def test_file_not_found_raises(self, spark, tmp_path):
-        with pytest.raises(
-            FileNotFoundError, match="Input file not found"
-        ):
-            read_csv(
-                spark, str(tmp_path / "nonexistent.csv")
-            )
+        with pytest.raises(FileNotFoundError, match="Input file not found"):
+            read_csv(spark, str(tmp_path / "nonexistent.csv"))
 
-    def test_empty_csv_returns_empty_df(
-        self, spark, tmp_path
-    ):
+    def test_empty_csv_returns_empty_df(self, spark, tmp_path):
         csv_file = tmp_path / "empty.csv"
-        csv_file.write_text(
-            "NAME,AGE\n", encoding="utf-8"
-        )
+        csv_file.write_text("NAME,AGE\n", encoding="utf-8")
 
         df = read_csv(spark, str(csv_file))
         assert df.count() == 0
@@ -119,9 +101,7 @@ class TestWriteCsv:
                 StructField("B", StringType()),
             ]
         )
-        return spark.createDataFrame(
-            [("x", "1"), ("y", "2")], schema
-        )
+        return spark.createDataFrame([("x", "1"), ("y", "2")], schema)
 
     def test_writes_single_csv_file(self, spark, tmp_path):
         out_path = tmp_path / "output.csv"
@@ -154,9 +134,7 @@ class TestWriteCsv:
         assert "A,B" not in content
         assert "x,1" in content
 
-    def test_writes_with_custom_delimiter(
-        self, spark, tmp_path
-    ):
+    def test_writes_with_custom_delimiter(self, spark, tmp_path):
         out_path = tmp_path / "output.tsv"
         df = self._make_df(spark)
 
@@ -175,9 +153,7 @@ class TestWriteCsv:
 
         assert out_path.exists()
 
-    def test_output_parent_dir_can_exist(
-        self, spark, tmp_path
-    ):
+    def test_output_parent_dir_can_exist(self, spark, tmp_path):
         """Ensure writing works when parent exists."""
         sub = tmp_path / "subdir"
         sub.mkdir()
@@ -187,9 +163,7 @@ class TestWriteCsv:
         write_csv(df, str(out_path))
         assert out_path.exists()
 
-    def test_multi_partition_coalesced_to_one(
-        self, spark, tmp_path
-    ):
+    def test_multi_partition_coalesced_to_one(self, spark, tmp_path):
         """Even a repartitioned DF produces one file."""
         out_path = tmp_path / "output.csv"
         df = self._make_df(spark).repartition(4)
