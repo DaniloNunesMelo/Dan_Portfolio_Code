@@ -1,0 +1,26 @@
+# Python
+__pycache__
+.py[cod]
+.egg-info
+dist
+build
+.venv
+venv
+
+# IDE
+.idea
+.vscode
+.swp
+
+# Spark
+.log
+derby.log
+metastore_db
+spark-warehouse
+
+# old projects
+python-data-analysis
+shell-scripting
+spark-cluster
+spark-data-analysis
+swift
