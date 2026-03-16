@@ -22,9 +22,7 @@ def parse_args(
 ) -> argparse.Namespace:
     """Parse CLI arguments."""
     parser = argparse.ArgumentParser(
-        description=(
-            "Europe 3 — Contracts-to-Transactions pipeline"
-        ),
+        description=("Europe 3 — Contracts-to-Transactions pipeline"),
     )
     parser.add_argument(
         "--contracts",
@@ -40,17 +38,13 @@ def parse_args(
         "--output",
         default="output/TRANSACTIONS.csv",
         help=(
-            "Path for the output TRANSACTIONS CSV "
-            "(default: output/TRANSACTIONS.csv)"
+            "Path for the output TRANSACTIONS CSV (default: output/TRANSACTIONS.csv)"
         ),
     )
     parser.add_argument(
         "--config",
         default=None,
-        help=(
-            "Path to parameters.yaml "
-            "(default: config/parameters.yaml)"
-        ),
+        help=("Path to parameters.yaml (default: config/parameters.yaml)"),
     )
     parser.add_argument(
         "--log-level",
@@ -65,11 +59,7 @@ def create_spark_session(
     app_name: str = "Europe3_Pipeline",
 ) -> SparkSession:
     """Build or retrieve a SparkSession."""
-    return (
-        SparkSession.builder.appName(app_name)
-        .master("local[*]")
-        .getOrCreate()
-    )
+    return SparkSession.builder.appName(app_name).master("local[*]").getOrCreate()
 
 
 def run_pipeline(
@@ -88,14 +78,10 @@ def run_pipeline(
             "hashify_base_url",
             "https://api.hashify.net/hash/md4/hex",
         ),
-        response_field=config.get(
-            "hashify_response_field", "Digest"
-        ),
+        response_field=config.get("hashify_response_field", "Digest"),
     )
 
-    transactions_df = build_transactions(
-        claims_df, contracts_df, config, hash_fn
-    )
+    transactions_df = build_transactions(claims_df, contracts_df, config, hash_fn)
 
     # Ensure output directory exists
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
@@ -117,9 +103,7 @@ def main(argv: list[str] | None = None) -> None:
 
     logging.basicConfig(
         level=getattr(logging, args.log_level),
-        format=(
-            "%(asctime)s  %(levelname)-8s  %(name)s  %(message)s"
-        ),
+        format=("%(asctime)s  %(levelname)-8s  %(name)s  %(message)s"),
     )
 
     config = load_parameters(args.config)
