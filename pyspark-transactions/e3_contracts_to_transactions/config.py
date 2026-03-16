@@ -9,7 +9,9 @@ from typing import Any
 import yaml
 
 _DEFAULT_CONFIG_PATH = (
-    Path(__file__).resolve().parent.parent / "config" / "parameters.yaml"
+    Path(__file__).resolve().parent.parent
+    / "config"
+    / "parameters.yaml"
 )
 
 
@@ -44,7 +46,9 @@ def load_parameters(
     path = Path(path)
 
     if not path.exists():
-        raise FileNotFoundError(f"Config file not found: {path}")
+        raise FileNotFoundError(
+            f"Config file not found: {path}"
+        )
 
     with open(path, encoding="utf-8") as fh:
         config: dict[str, Any] = yaml.safe_load(fh)
@@ -65,4 +69,6 @@ def _validate(config: dict[str, Any]) -> None:
     ]
     missing = [k for k in required if k not in config]
     if missing:
-        raise ValueError(f"Config is missing required keys: {missing}")
+        raise ValueError(
+            f"Config is missing required keys: {missing}"
+        )

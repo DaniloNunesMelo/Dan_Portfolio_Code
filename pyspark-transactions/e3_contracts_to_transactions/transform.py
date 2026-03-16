@@ -19,7 +19,9 @@ def add_source_system(
     source_system: str,
 ) -> DataFrame:
     """Add literal CONTRACT_SOURCE_SYSTEM column."""
-    return df.withColumn("CONTRACT_SOURCE_SYSTEM", F.lit(source_system))
+    return df.withColumn(
+        "CONTRACT_SOURCE_SYSTEM", F.lit(source_system)
+    )
 
 
 def add_contract_source_system_id(
@@ -32,10 +34,18 @@ def add_contract_source_system_id(
     Uses join key column names from *config["claim_contract_join"]*.
     """
     join_cfg = config.get("claim_contract_join", {})
-    claim_cid = join_cfg.get("claim_contract_id_col", "CONTRACT_ID")
-    claim_ss = join_cfg.get("claim_source_system_col", "CONTRACT_SOURCE_SYSTEM")
-    contract_cid = join_cfg.get("contract_id_col", "CONTRACT_ID")
-    contract_ss = join_cfg.get("contract_source_system_col", "SOURCE_SYSTEM")
+    claim_cid = join_cfg.get(
+        "claim_contract_id_col", "CONTRACT_ID"
+    )
+    claim_ss = join_cfg.get(
+        "claim_source_system_col", "CONTRACT_SOURCE_SYSTEM"
+    )
+    contract_cid = join_cfg.get(
+        "contract_id_col", "CONTRACT_ID"
+    )
+    contract_ss = join_cfg.get(
+        "contract_source_system_col", "SOURCE_SYSTEM"
+    )
 
     contracts_subset = contracts_df.select(
         F.col(contract_ss).alias("_ctr_ss"),
@@ -46,18 +56,23 @@ def add_contract_source_system_id(
         contracts_subset,
         on=(
             (claims_df[claim_ss] == contracts_subset["_ctr_ss"])
-            & (claims_df[claim_cid] == contracts_subset["_ctr_id"])
+            & (
+                claims_df[claim_cid]
+                == contracts_subset["_ctr_id"]
+            )
         ),
         how="left",
     )
 
-    return joined.withColumn(
-        "CONTRACT_SOURCE_SYSTEM_ID",
-        F.when(
-            F.col("_ctr_id").isNotNull(),
-            F.col(claim_cid),
-        ).cast("long"),
-    ).drop("_ctr_ss", "_ctr_id")
+    return (
+        joined.withColumn(
+            "CONTRACT_SOURCE_SYSTEM_ID",
+            F.when(
+                F.col("_ctr_id").isNotNull(),
+                F.col(claim_cid),
+            ).cast("long"),
+        ).drop("_ctr_ss", "_ctr_id")
+    )
 
 
 def add_source_system_id(df: DataFrame) -> DataFrame:
@@ -67,7 +82,9 @@ def add_source_system_id(df: DataFrame) -> DataFrame:
     """
     return df.withColumn(
         "SOURCE_SYSTEM_ID",
-        F.regexp_extract(F.col("CLAIM_ID"), r"_(\d+)$", 1).cast("int"),
+        F.regexp_extract(F.col("CLAIM_ID"), r"_(\d+)$", 1).cast(
+            "int"
+        ),
     )
 
 
@@ -112,7 +129,9 @@ def add_transaction_direction(
             expr = expr.when(condition, F.lit(direction))
 
     if expr is not None:
-        col_expr = expr.otherwise(F.lit(None).cast(StringType()))
+        col_expr = expr.otherwise(
+            F.lit(None).cast(StringType())
+        )
     else:
         col_expr = F.lit(None).cast(StringType())
 
@@ -151,7 +170,9 @@ def add_creation_date(
 
 def add_system_timestamp(df: DataFrame) -> DataFrame:
     """Add current_timestamp()."""
-    return df.withColumn("SYSTEM_TIMESTAMP", F.current_timestamp())
+    return df.withColumn(
+        "SYSTEM_TIMESTAMP", F.current_timestamp()
+    )
 
 
 def add_nse_id(
@@ -160,7 +181,9 @@ def add_nse_id(
 ) -> DataFrame:
     """Compute NSE_ID via a UDF that calls *hash_fn*."""
     hash_udf = F.udf(hash_fn, StringType())
-    return df.withColumn("NSE_ID", hash_udf(F.col("CLAIM_ID")))
+    return df.withColumn(
+        "NSE_ID", hash_udf(F.col("CLAIM_ID"))
+    )
 
 
 def build_transactions(
@@ -172,7 +195,9 @@ def build_transactions(
     """Apply every transform step and select final columns."""
     from .schemas import TRANSACTIONS_SCHEMA
 
-    df = add_contract_source_system_id(claims_df, contracts_df, config)
+    df = add_contract_source_system_id(
+        claims_df, contracts_df, config
+    )
     df = add_source_system(df, config["source_system"])
     df = add_source_system_id(df)
     df = add_transaction_type(df, config)
