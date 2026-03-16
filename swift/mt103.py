@@ -1,7 +1,6 @@
 import csv
 import re
 from typing import Dict, Any
-from pprint import pprint
 
 MT103_FIELD_DESCRIPTIONS = {
     "20":  "Transaction Reference Number",

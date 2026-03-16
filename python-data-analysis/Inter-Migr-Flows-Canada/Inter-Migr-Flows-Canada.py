@@ -10,7 +10,6 @@
 # Generate Graphic with HTML for Exploratory Data Analysis.
 
 
-from datetime import datetime
 import pandas as pd
 import numpy as np
 import getpass
@@ -41,8 +40,8 @@ df_canada = pd.read_excel(FILE_NAME, sheet_name='Regions by Citizenship', skipro
 df_canada_citizen = pd.read_excel(FILE_NAME, sheet_name='Canada by Citizenship', skiprows=1)
 
 LOAD_DATE = time.strftime('%Y %b %d (%a) %H:%M:%S', time.gmtime())
-USER_NAME = getpass.getuser();
-PATH = os.getcwd();
+USER_NAME = getpass.getuser()
+PATH = os.getcwd()
 FILE_DATE = time.strftime('%Y %b %d (%a) %H:%M:%S', time.gmtime(os.path.getmtime(FILE_NAME)))
 SIZE = os.path.getsize(FILE_NAME)
 HASH_MD5 = file_hash_md5.hexdigest()

@@ -8,7 +8,6 @@
 # Italian citizenship acquisition
 # Generate Graphic with HTML for Exploratory Data Analysis.
 
-import pyspark
 from pyspark.sql import SparkSession
 
 ## Defining Spark Session
