@@ -42,7 +42,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Create output directory
-        run: mkdir -p output
+        run: mkdir -p pyspark-transactions/output
 
       - name: Run main pipeline
         working-directory: ./pyspark-transactions
@@ -50,19 +50,19 @@ jobs:
           python -m e3_contracts_to_transactions.main \
             --contracts data/contracts.csv \
             --claims data/claims.csv \
-            --output ../output/TRANSACTIONS.csv
+            --output ..pyspark-transactions/output/TRANSACTIONS.csv
       
       - name: Upload output as artifact
         uses: actions/upload-artifact@v4.6.0  # Latest patch version
         with:
           name: transactions-output
-          path: output/TRANSACTIONS.csv
+          path: pyspark-transactions/output/TRANSACTIONS.csv
 
       - name: Commit sample output to repository
         run: |
-          cp output/TRANSACTIONS.csv output/sample_TRANSACTIONS.csv
+          cp pyspark-transactions/output/TRANSACTIONS.csv pyspark-transactions/output/sample_TRANSACTIONS.csv
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add output/sample_TRANSACTIONS.csv
-          git diff --cached --quiet || git commit -m "chore: update sample transactions dataset [skip ci]"
+          git add pyspark-transactions/output/sample_TRANSACTIONS.csv
+          git diff --cached --quiet || git commit -m "chore: update sample transactions dataset"
           git push
