@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Callable
 
 import requests
 
@@ -11,7 +11,7 @@ def make_hashify_fn(
     base_url: str = "https://api.hashify.net/hash/md4/hex",
     response_field: str = "Digest",
     timeout: int = 10,
-) -> callable:
+) -> Callable[[str | None], str | None]:
     """Return a ``(claim_id: str) -> str`` function that calls the Hashify API.
 
     Parameters come from config so the URL and field name are not hardcoded.
