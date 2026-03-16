@@ -6,10 +6,8 @@ from the coverage report.
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
-from pyspark.sql import SparkSession
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import StringType, StructField, StructType
 
 from e3_contracts_to_transactions.io_utils import read_csv, write_csv
@@ -81,7 +79,7 @@ class TestReadCsv:
 
 
 class TestWriteCsv:
-    def _make_df(self, spark: SparkSession) -> "DataFrame":
+    def _make_df(self, spark: SparkSession) -> DataFrame:
         schema = StructType([
             StructField("A", StringType()),
             StructField("B", StringType()),

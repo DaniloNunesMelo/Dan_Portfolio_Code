@@ -6,7 +6,7 @@ from decimal import Decimal
 from datetime import date, datetime
 
 import pytest
-from pyspark.sql import SparkSession
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import StringType, StructField, StructType
 
 from e3_contracts_to_transactions.transform import (
@@ -27,7 +27,7 @@ from e3_contracts_to_transactions.transform import (
 # ── Helpers ──────────────────────────────────────────────────────
 
 
-def _claims_df(spark: SparkSession, rows: list[tuple]) -> "DataFrame":
+def _claims_df(spark: SparkSession, rows: list[tuple]) -> DataFrame:
     schema = StructType(
         [
             StructField("CLAIM_ID", StringType()),
@@ -42,7 +42,7 @@ def _claims_df(spark: SparkSession, rows: list[tuple]) -> "DataFrame":
     return spark.createDataFrame(rows, schema)
 
 
-def _contracts_df(spark: SparkSession, rows: list[tuple]) -> "DataFrame":
+def _contracts_df(spark: SparkSession, rows: list[tuple]) -> DataFrame:
     schema = StructType(
         [
             StructField("SOURCE_SYSTEM", StringType()),

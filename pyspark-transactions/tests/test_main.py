@@ -6,7 +6,6 @@ from the coverage report.
 
 from __future__ import annotations
 
-from pathlib import Path
 from textwrap import dedent
 from unittest.mock import patch, MagicMock
 
@@ -78,7 +77,7 @@ class TestCreateSparkSession:
             mock_builder.master.return_value = mock_builder
             mock_builder.getOrCreate.return_value = MagicMock(spec=SparkSession)
 
-            session = create_spark_session("CustomApp")
+            create_spark_session("CustomApp")
 
             mock_builder.appName.assert_called_once_with("CustomApp")
             mock_builder.master.assert_called_once_with("local[*]")
