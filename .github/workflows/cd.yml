@@ -1,4 +1,4 @@
-name: Deploy - Run PySpark E3 Trans Pipeline
+name: CD - Run PySpark E3 Trans Pipeline
 
 on:
   push:
