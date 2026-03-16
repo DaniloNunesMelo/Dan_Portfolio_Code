@@ -2,16 +2,16 @@
 
 [Full report](https://htmlpreview.github.io/?https://github.com/DaniloNunesMelo/Dan_Portfolio_Code/blob/python-coverage-comment-action-data/htmlcov/index.html)
 
-| Name                                            |    Stmts |     Miss |   Cover |   Missing |
-|------------------------------------------------ | -------: | -------: | ------: | --------: |
-| e3\_contracts\_to\_transactions/\_\_init\_\_.py |        0 |        0 |    100% |           |
-| e3\_contracts\_to\_transactions/api.py          |       12 |        0 |    100% |           |
-| e3\_contracts\_to\_transactions/config.py       |       21 |        0 |    100% |           |
-| e3\_contracts\_to\_transactions/io\_utils.py    |       22 |        0 |    100% |           |
-| e3\_contracts\_to\_transactions/main.py         |       40 |        1 |     98% |       129 |
-| e3\_contracts\_to\_transactions/schemas.py      |        2 |        0 |    100% |           |
-| e3\_contracts\_to\_transactions/transform.py    |       68 |        0 |    100% |           |
-| **TOTAL**                                       |  **165** |    **1** | **99%** |           |
+| Name                                            |    Stmts |     Miss |    Cover |   Missing |
+|------------------------------------------------ | -------: | -------: | -------: | --------: |
+| e3\_contracts\_to\_transactions/\_\_init\_\_.py |        0 |        0 |     100% |           |
+| e3\_contracts\_to\_transactions/api.py          |       12 |        0 |     100% |           |
+| e3\_contracts\_to\_transactions/config.py       |       21 |        0 |     100% |           |
+| e3\_contracts\_to\_transactions/io\_utils.py    |       22 |        0 |     100% |           |
+| e3\_contracts\_to\_transactions/main.py         |       40 |        0 |     100% |           |
+| e3\_contracts\_to\_transactions/schemas.py      |        2 |        0 |     100% |           |
+| e3\_contracts\_to\_transactions/transform.py    |       68 |        0 |     100% |           |
+| **TOTAL**                                       |  **165** |    **0** | **100%** |           |
 
 
 ## Setup coverage badge
