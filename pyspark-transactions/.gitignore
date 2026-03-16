@@ -6,18 +6,20 @@ dist/
 build/
 .venv/
 venv/
-
+ 
 # IDE
 .idea/
 .vscode/
 *.swp
-
+ 
 # Spark
 *.log
 derby.log
 metastore_db/
 spark-warehouse/
-
-# Output
+ 
+# Output — raw pipeline artefact (never commit)
 output/TRANSACTIONS.csv
 output/*.csv
+# Exception: sample output managed by CD workflow
+!output/sample_TRANSACTIONS.csv
