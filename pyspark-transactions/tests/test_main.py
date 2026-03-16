@@ -224,8 +224,11 @@ class TestRunPipeline:
 # -- main() entry point ----------------------------------------
 
 
+_CREATE_SPARK_PATCH = "e3_contracts_to_transactions.main.create_spark_session"
+
+
 class TestMain:
-    def test_main_with_valid_args(self, tmp_path):
+    def test_main_with_valid_args(self, tmp_path, spark):
         """Full integration with all deps mocked."""
         contracts = tmp_path / "contracts.csv"
         contracts.write_text(
@@ -269,9 +272,16 @@ class TestMain:
         )
         output = tmp_path / "TRANSACTIONS.csv"
 
-        with patch(
-            _HASHIFY_PATCH,
-            return_value=lambda cid: "mocked_hash",
+        with (
+            patch(
+                _HASHIFY_PATCH,
+                return_value=lambda cid: "mocked_hash",
+            ),
+            patch(
+                _CREATE_SPARK_PATCH,
+                return_value=spark,
+            ),
+            patch.object(spark, "stop"),
         ):
             main(
                 [
