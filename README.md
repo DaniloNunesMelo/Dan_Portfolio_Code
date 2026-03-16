@@ -10,8 +10,8 @@
 | e3\_contracts\_to\_transactions/io\_utils.py    |       22 |        1 |     95% |        96 |
 | e3\_contracts\_to\_transactions/main.py         |       40 |        1 |     98% |       129 |
 | e3\_contracts\_to\_transactions/schemas.py      |        2 |        0 |    100% |           |
-| e3\_contracts\_to\_transactions/transform.py    |       68 |        2 |     97% |   92, 117 |
-| **TOTAL**                                       |  **165** |    **4** | **98%** |           |
+| e3\_contracts\_to\_transactions/transform.py    |       68 |        1 |     99% |       117 |
+| **TOTAL**                                       |  **165** |    **3** | **98%** |           |
 
 
 ## Setup coverage badge
