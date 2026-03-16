@@ -8,7 +8,7 @@ from typing import Callable
 # Default retry policy (all primitives — fully picklable)
 # ---------------------------------------------------------------------------
 DEFAULT_TOTAL_RETRIES: int = 3
-DEFAULT_BACKOFF_FACTOR: float = 0.5   # waits 0 s, 0.5 s, 1 s between attempts
+DEFAULT_BACKOFF_FACTOR: float = 0.5  # waits 0 s, 0.5 s, 1 s between attempts
 DEFAULT_RETRY_ON: tuple[int, ...] = (429, 500, 502, 503, 504)
 DEFAULT_TIMEOUT: int = 10
 
@@ -64,7 +64,7 @@ def make_hashify_fn(
             backoff_factor=backoff_factor,
             status_forcelist=list(retry_on_status),
             allowed_methods=["GET"],
-            raise_on_status=False,   # let raise_for_status() handle it below
+            raise_on_status=False,  # let raise_for_status() handle it below
         )
         adapter = HTTPAdapter(max_retries=retry_policy)
 

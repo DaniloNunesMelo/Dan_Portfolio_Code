@@ -69,8 +69,8 @@ class TestMakeHashifyFn:
 
     def test_http_error_raises(self):
         mock_session = _make_mock_session()
-        mock_session.get.return_value.raise_for_status.side_effect = (
-            requests.HTTPError("500 Server Error")
+        mock_session.get.return_value.raise_for_status.side_effect = requests.HTTPError(
+            "500 Server Error"
         )
 
         with patch(_SESSION_PATCH, return_value=mock_session):
