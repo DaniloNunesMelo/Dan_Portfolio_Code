@@ -1,4 +1,4 @@
-name: CI - Test PySpark E3 Trans Tests
+name: CI - Tests PySpark E3 Trans
 on:
   push:
     branches: [main, master]

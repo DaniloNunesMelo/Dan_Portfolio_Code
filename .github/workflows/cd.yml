@@ -46,7 +46,16 @@ jobs:
             --contracts data/contracts.csv \
             --claims data/claims.csv \
             --output ../output/TRANSACTIONS.csv
-      
+
+      - name: Commit sample output
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          cp output/TRANSACTIONS.csv output/sample_TRANSACTIONS.csv
+          git add output/sample_TRANSACTIONS.csv
+          git commit -m "Update sample transactions dataset [skip ci]" || echo "No changes"
+          git push
+
       - name: Upload output as artifact
         uses: actions/upload-artifact@v4.6.0  # Latest patch version
         with:
