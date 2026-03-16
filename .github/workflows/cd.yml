@@ -2,7 +2,7 @@ name: Deploy - Run PySpark E3 Trans Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - 'pyspark-transactions/**'
       - 'data/**'
