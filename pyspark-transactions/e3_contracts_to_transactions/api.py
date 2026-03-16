@@ -66,7 +66,7 @@ def make_hashify_fn(
             return None
         try:
             return _hash_with_retry(claim_id)
-        except requests.RequestException as e:
+        except requests.RequestException:
             logger.error(
                 f"Failed to hash claim_id={claim_id} after {max_retries} retries",
                 exc_info=True,
