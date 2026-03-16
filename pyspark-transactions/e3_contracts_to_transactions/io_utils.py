@@ -94,6 +94,7 @@ def write_csv(
     part_files = list(tmp_dir.glob("part-*"))
     if not part_files:
         import os
+
         contents = os.listdir(tmp_dir) if tmp_dir.exists() else "DIRECTORY_NOT_FOUND"
         raise RuntimeError(
             f"No part files found in {tmp_dir}. This indicates a Spark write failure. "

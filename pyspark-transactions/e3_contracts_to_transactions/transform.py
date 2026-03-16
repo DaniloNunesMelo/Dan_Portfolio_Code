@@ -62,14 +62,12 @@ def add_contract_source_system_id(
             F.col(claim_cid),
         ).cast("long"),
     ).drop("_ctr_ss", "_ctr_id")
-    
+
     # Log join statistics
     matched = result.filter(F.col("CONTRACT_SOURCE_SYSTEM_ID").isNotNull()).count()
     unmatched = result.filter(F.col("CONTRACT_SOURCE_SYSTEM_ID").isNull()).count()
-    logger.info(
-        f"Join complete: {matched} matched, {unmatched} unmatched claims"
-    )
-    
+    logger.info(f"Join complete: {matched} matched, {unmatched} unmatched claims")
+
     return result
 
 
@@ -185,7 +183,7 @@ def build_transactions(
     hash_fn: Callable[[str | None], str | None],
 ) -> DataFrame:
     """Apply every transform step and select final columns.
-    
+
     Logs the number of input and output rows for observability.
     """
     from .schemas import TRANSACTIONS_SCHEMA
@@ -207,11 +205,11 @@ def build_transactions(
 
     target_cols = [f.name for f in TRANSACTIONS_SCHEMA.fields]
     result = df.select(*target_cols)
-    
+
     final_count = result.count()
     logger.info(
         f"Transformation complete: {initial_count} input → {final_count} output "
         f"(reduction: {initial_count - final_count})"
     )
-    
+
     return result

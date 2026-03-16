@@ -52,9 +52,7 @@ def validate_nse_ids(df: DataFrame, allow_null: bool = False) -> DataFrame:
         )
 
     if null_count > 0:
-        logger.warning(
-            f"Allowing {null_count} NULL NSE_IDs (allow_null={allow_null})"
-        )
+        logger.warning(f"Allowing {null_count} NULL NSE_IDs (allow_null={allow_null})")
 
     return df
 
