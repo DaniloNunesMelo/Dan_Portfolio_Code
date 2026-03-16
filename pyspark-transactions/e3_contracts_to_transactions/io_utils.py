@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import shutil
 from pathlib import Path
 
 from pyspark.sql import DataFrame, SparkSession
@@ -28,7 +29,7 @@ def read_csv(
     header : bool
         Whether the first row is a header.
     infer_schema : bool
-        Let Spark infer column types (default False → all strings).
+        Let Spark infer column types (default False -> strings).
     delimiter : str
         Column delimiter.
 
@@ -42,7 +43,9 @@ def read_csv(
         If *path* does not exist on the local filesystem.
     """
     if not Path(path).exists():
-        raise FileNotFoundError(f"Input file not found: {path}")
+        raise FileNotFoundError(
+            f"Input file not found: {path}"
+        )
 
     logger.info("Reading CSV: %s", path)
     return (
@@ -63,7 +66,7 @@ def write_csv(
 ) -> None:
     """Write a DataFrame as a single CSV file.
 
-    Spark normally writes a directory of part files. This helper
+    Spark normally writes a directory of part files.  This helper
     coalesces to 1 partition so the user gets a single file, then
     renames it to the requested *path*.
 
@@ -80,7 +83,9 @@ def write_csv(
     out = Path(path)
     tmp_dir = out.parent / f".tmp_{out.stem}"
 
-    logger.info("Writing CSV: %s (via temp dir %s)", path, tmp_dir)
+    logger.info(
+        "Writing CSV: %s (via temp dir %s)", path, tmp_dir
+    )
     (
         df.coalesce(1)
         .write.option("header", header)
@@ -92,11 +97,12 @@ def write_csv(
     # Find the single part-* file and move it
     part_files = list(tmp_dir.glob("part-*"))
     if not part_files:
-        raise RuntimeError(f"No part files found in {tmp_dir}")
+        raise RuntimeError(
+            f"No part files found in {tmp_dir}"
+        )
 
     part_files[0].rename(out)
 
     # Clean up temp directory
-    import shutil
     shutil.rmtree(tmp_dir, ignore_errors=True)
     logger.info("Output written: %s", out)

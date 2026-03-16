@@ -17,10 +17,14 @@ from .transform import build_transactions
 logger = logging.getLogger(__name__)
 
 
-def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+def parse_args(
+    argv: list[str] | None = None,
+) -> argparse.Namespace:
     """Parse CLI arguments."""
     parser = argparse.ArgumentParser(
-        description="Europe 3 — Contracts-to-Transactions pipeline",
+        description=(
+            "Europe 3 — Contracts-to-Transactions pipeline"
+        ),
     )
     parser.add_argument(
         "--contracts",
@@ -35,12 +39,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--output",
         default="output/TRANSACTIONS.csv",
-        help="Path for the output TRANSACTIONS CSV (default: output/TRANSACTIONS.csv)",
+        help=(
+            "Path for the output TRANSACTIONS CSV "
+            "(default: output/TRANSACTIONS.csv)"
+        ),
     )
     parser.add_argument(
         "--config",
         default=None,
-        help="Path to parameters.yaml (default: config/parameters.yaml)",
+        help=(
+            "Path to parameters.yaml "
+            "(default: config/parameters.yaml)"
+        ),
     )
     parser.add_argument(
         "--log-level",
@@ -51,11 +61,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def create_spark_session(app_name: str = "Europe3_Pipeline") -> SparkSession:
+def create_spark_session(
+    app_name: str = "Europe3_Pipeline",
+) -> SparkSession:
     """Build or retrieve a SparkSession."""
     return (
-        SparkSession.builder
-        .appName(app_name)
+        SparkSession.builder.appName(app_name)
         .master("local[*]")
         .getOrCreate()
     )
@@ -68,16 +79,23 @@ def run_pipeline(
     claims_path: str,
     output_path: str,
 ) -> None:
-    """Execute the full pipeline: read → transform → write."""
+    """Execute the full pipeline: read -> transform -> write."""
     contracts_df = read_csv(spark, contracts_path)
     claims_df = read_csv(spark, claims_path)
 
     hash_fn = make_hashify_fn(
-        base_url=config.get("hashify_base_url", "https://api.hashify.net/hash/md4/hex"),
-        response_field=config.get("hashify_response_field", "Digest"),
+        base_url=config.get(
+            "hashify_base_url",
+            "https://api.hashify.net/hash/md4/hex",
+        ),
+        response_field=config.get(
+            "hashify_response_field", "Digest"
+        ),
     )
 
-    transactions_df = build_transactions(claims_df, contracts_df, config, hash_fn)
+    transactions_df = build_transactions(
+        claims_df, contracts_df, config, hash_fn
+    )
 
     # Ensure output directory exists
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
@@ -87,24 +105,38 @@ def run_pipeline(
         header=config.get("output_header", True),
         delimiter=config.get("output_delimiter", ","),
     )
-    logger.info("Pipeline finished. %d transactions written.", transactions_df.count())
+    logger.info(
+        "Pipeline finished. %d transactions written.",
+        transactions_df.count(),
+    )
 
 
 def main(argv: list[str] | None = None) -> None:
-    """Main entry point — parse args, load config, run."""
+    """Main entry point -- parse args, load config, run."""
     args = parse_args(argv)
 
     logging.basicConfig(
         level=getattr(logging, args.log_level),
-        format="%(asctime)s  %(levelname)-8s  %(name)s  %(message)s",
+        format=(
+            "%(asctime)s  %(levelname)-8s  %(name)s  %(message)s"
+        ),
     )
 
     config = load_parameters(args.config)
-    logger.info("Config loaded: source_system=%s", config["source_system"])
+    logger.info(
+        "Config loaded: source_system=%s",
+        config["source_system"],
+    )
 
     spark = create_spark_session()
     try:
-        run_pipeline(spark, config, args.contracts, args.claims, args.output)
+        run_pipeline(
+            spark,
+            config,
+            args.contracts,
+            args.claims,
+            args.output,
+        )
     finally:
         spark.stop()
 

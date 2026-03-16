@@ -8,18 +8,24 @@ from typing import Any
 
 import yaml
 
-_DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "parameters.yaml"
+_DEFAULT_CONFIG_PATH = (
+    Path(__file__).resolve().parent.parent
+    / "config"
+    / "parameters.yaml"
+)
 
 
-def load_parameters(path: str | Path | None = None) -> dict[str, Any]:
+def load_parameters(
+    path: str | Path | None = None,
+) -> dict[str, Any]:
     """Read *parameters.yaml* and return it as a plain dict.
 
     Parameters
     ----------
     path : str | Path | None
         Explicit path to the YAML file.  When *None*, uses the
-        ``PIPELINE_CONFIG`` environment variable or falls back to the
-        default location ``config/parameters.yaml`` relative to the
+        ``PIPELINE_CONFIG`` environment variable or falls back to
+        the default ``config/parameters.yaml`` relative to the
         project root.
 
     Returns
@@ -33,11 +39,16 @@ def load_parameters(path: str | Path | None = None) -> dict[str, Any]:
         If the resolved path does not exist.
     """
     if path is None:
-        path = os.environ.get("PIPELINE_CONFIG", str(_DEFAULT_CONFIG_PATH))
+        path = os.environ.get(
+            "PIPELINE_CONFIG",
+            str(_DEFAULT_CONFIG_PATH),
+        )
     path = Path(path)
 
     if not path.exists():
-        raise FileNotFoundError(f"Config file not found: {path}")
+        raise FileNotFoundError(
+            f"Config file not found: {path}"
+        )
 
     with open(path, encoding="utf-8") as fh:
         config: dict[str, Any] = yaml.safe_load(fh)
@@ -58,4 +69,6 @@ def _validate(config: dict[str, Any]) -> None:
     ]
     missing = [k for k in required if k not in config]
     if missing:
-        raise ValueError(f"Config is missing required keys: {missing}")
+        raise ValueError(
+            f"Config is missing required keys: {missing}"
+        )

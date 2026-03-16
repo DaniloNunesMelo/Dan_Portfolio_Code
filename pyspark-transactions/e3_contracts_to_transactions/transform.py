@@ -1,7 +1,8 @@
-"""Pure Spark transformations — no I/O, no side-effects.
+"""Pure Spark transformations -- no I/O, no side-effects.
 
-Every public function takes a DataFrame (and optionally config) and
-returns a new DataFrame.  This keeps transforms testable in isolation.
+Every public function takes a DataFrame (and optionally config)
+and returns a new DataFrame.  This keeps transforms testable in
+isolation.
 """
 
 from __future__ import annotations
@@ -13,12 +14,14 @@ import pyspark.sql.functions as F
 from pyspark.sql.types import DecimalType, StringType
 
 
-# ── Individual column transforms ─────────────────────────────────
-
-
-def add_source_system(df: DataFrame, source_system: str) -> DataFrame:
+def add_source_system(
+    df: DataFrame,
+    source_system: str,
+) -> DataFrame:
     """Add literal CONTRACT_SOURCE_SYSTEM column."""
-    return df.withColumn("CONTRACT_SOURCE_SYSTEM", F.lit(source_system))
+    return df.withColumn(
+        "CONTRACT_SOURCE_SYSTEM", F.lit(source_system)
+    )
 
 
 def add_contract_source_system_id(
@@ -31,10 +34,18 @@ def add_contract_source_system_id(
     Uses join key column names from *config["claim_contract_join"]*.
     """
     join_cfg = config.get("claim_contract_join", {})
-    claim_cid = join_cfg.get("claim_contract_id_col", "CONTRACT_ID")
-    claim_ss = join_cfg.get("claim_source_system_col", "CONTRACT_SOURCE_SYSTEM")
-    contract_cid = join_cfg.get("contract_id_col", "CONTRACT_ID")
-    contract_ss = join_cfg.get("contract_source_system_col", "SOURCE_SYSTEM")
+    claim_cid = join_cfg.get(
+        "claim_contract_id_col", "CONTRACT_ID"
+    )
+    claim_ss = join_cfg.get(
+        "claim_source_system_col", "CONTRACT_SOURCE_SYSTEM"
+    )
+    contract_cid = join_cfg.get(
+        "contract_id_col", "CONTRACT_ID"
+    )
+    contract_ss = join_cfg.get(
+        "contract_source_system_col", "SOURCE_SYSTEM"
+    )
 
     contracts_subset = contracts_df.select(
         F.col(contract_ss).alias("_ctr_ss"),
@@ -45,42 +56,56 @@ def add_contract_source_system_id(
         contracts_subset,
         on=(
             (claims_df[claim_ss] == contracts_subset["_ctr_ss"])
-            & (claims_df[claim_cid] == contracts_subset["_ctr_id"])
+            & (
+                claims_df[claim_cid]
+                == contracts_subset["_ctr_id"]
+            )
         ),
         how="left",
     )
 
     return (
-        joined
-        .withColumn(
+        joined.withColumn(
             "CONTRACT_SOURCE_SYSTEM_ID",
-            F.when(F.col("_ctr_id").isNotNull(), F.col(claim_cid)).cast("long"),
-        )
-        .drop("_ctr_ss", "_ctr_id")
+            F.when(
+                F.col("_ctr_id").isNotNull(),
+                F.col(claim_cid),
+            ).cast("long"),
+        ).drop("_ctr_ss", "_ctr_id")
     )
 
 
 def add_source_system_id(df: DataFrame) -> DataFrame:
-    """Extract numeric suffix from CLAIM_ID  (e.g. ``CL_68545123`` → ``68545123``)."""
+    """Extract numeric suffix from CLAIM_ID.
+
+    Example: ``CL_68545123`` -> ``68545123``.
+    """
     return df.withColumn(
         "SOURCE_SYSTEM_ID",
-        F.regexp_extract(F.col("CLAIM_ID"), r"_(\d+)$", 1).cast("int"),
+        F.regexp_extract(F.col("CLAIM_ID"), r"_(\d+)$", 1).cast(
+            "int"
+        ),
     )
 
 
-def add_transaction_type(df: DataFrame, config: dict[str, Any]) -> DataFrame:
-    """Map CLAIM_TYPE to TRANSACTION_TYPE using the config mapping."""
-    mapping = config["transaction_type_mapping"]       # {"1": "Private", "2": "Corporate"}
-    default = config["transaction_type_default"]       # "Unknown"
+def add_transaction_type(
+    df: DataFrame,
+    config: dict[str, Any],
+) -> DataFrame:
+    """Map CLAIM_TYPE to TRANSACTION_TYPE using the config."""
+    mapping = config["transaction_type_mapping"]
+    default = config["transaction_type_default"]
 
-    # Build a chained when/otherwise expression from the mapping dict
+    # Build a chained when/otherwise from the mapping dict
     expr = None
     for claim_val, label in mapping.items():
         condition = F.col("CLAIM_TYPE") == str(claim_val)
-        expr = F.when(condition, F.lit(label)) if expr is None else expr.when(condition, F.lit(label))
+        if expr is None:
+            expr = F.when(condition, F.lit(label))
+        else:
+            expr = expr.when(condition, F.lit(label))
 
     if expr is None:
-        # No mapping entries at all → everything is default
         col_expr = F.lit(default)
     else:
         col_expr = expr.otherwise(F.lit(default))
@@ -88,20 +113,28 @@ def add_transaction_type(df: DataFrame, config: dict[str, Any]) -> DataFrame:
     return df.withColumn("TRANSACTION_TYPE", col_expr)
 
 
-def add_transaction_direction(df: DataFrame, config: dict[str, Any]) -> DataFrame:
-    """Derive TRANSACTION_DIRECTION from CLAIM_ID prefix using config."""
-    mapping = config["transaction_direction_mapping"]  # {"CL": "COINSURANCE", ...}
+def add_transaction_direction(
+    df: DataFrame,
+    config: dict[str, Any],
+) -> DataFrame:
+    """Derive TRANSACTION_DIRECTION from CLAIM_ID prefix."""
+    mapping = config["transaction_direction_mapping"]
 
     expr = None
     for prefix, direction in mapping.items():
         condition = F.col("CLAIM_ID").startswith(f"{prefix}_")
-        expr = (
-            F.when(condition, F.lit(direction))
-            if expr is None
-            else expr.when(condition, F.lit(direction))
-        )
+        if expr is None:
+            expr = F.when(condition, F.lit(direction))
+        else:
+            expr = expr.when(condition, F.lit(direction))
 
-    col_expr = expr.otherwise(F.lit(None).cast(StringType())) if expr else F.lit(None).cast(StringType())
+    if expr is not None:
+        col_expr = expr.otherwise(
+            F.lit(None).cast(StringType())
+        )
+    else:
+        col_expr = F.lit(None).cast(StringType())
+
     return df.withColumn("TRANSACTION_DIRECTION", col_expr)
 
 
@@ -113,7 +146,10 @@ def add_conformed_value(df: DataFrame) -> DataFrame:
     )
 
 
-def add_business_date(df: DataFrame, date_fmt: str) -> DataFrame:
+def add_business_date(
+    df: DataFrame,
+    date_fmt: str,
+) -> DataFrame:
     """Parse DATE_OF_LOSS into a date column."""
     return df.withColumn(
         "BUSINESS_DATE",
@@ -121,7 +157,10 @@ def add_business_date(df: DataFrame, date_fmt: str) -> DataFrame:
     )
 
 
-def add_creation_date(df: DataFrame, datetime_fmt: str) -> DataFrame:
+def add_creation_date(
+    df: DataFrame,
+    datetime_fmt: str,
+) -> DataFrame:
     """Parse CREATION_DATE (string) into a timestamp column."""
     return df.withColumn(
         "CREATION_DATE",
@@ -131,19 +170,20 @@ def add_creation_date(df: DataFrame, datetime_fmt: str) -> DataFrame:
 
 def add_system_timestamp(df: DataFrame) -> DataFrame:
     """Add current_timestamp()."""
-    return df.withColumn("SYSTEM_TIMESTAMP", F.current_timestamp())
+    return df.withColumn(
+        "SYSTEM_TIMESTAMP", F.current_timestamp()
+    )
 
 
 def add_nse_id(
     df: DataFrame,
     hash_fn: Callable[[str], str],
 ) -> DataFrame:
-    """Compute NSE_ID by applying *hash_fn* to every CLAIM_ID via a UDF."""
+    """Compute NSE_ID via a UDF that calls *hash_fn*."""
     hash_udf = F.udf(hash_fn, StringType())
-    return df.withColumn("NSE_ID", hash_udf(F.col("CLAIM_ID")))
-
-
-# ── Orchestrator ─────────────────────────────────────────────────
+    return df.withColumn(
+        "NSE_ID", hash_udf(F.col("CLAIM_ID"))
+    )
 
 
 def build_transactions(
@@ -152,10 +192,12 @@ def build_transactions(
     config: dict[str, Any],
     hash_fn: Callable[[str], str],
 ) -> DataFrame:
-    """Apply every transformation step and select final columns."""
+    """Apply every transform step and select final columns."""
     from .schemas import TRANSACTIONS_SCHEMA
 
-    df = add_contract_source_system_id(claims_df, contracts_df, config)
+    df = add_contract_source_system_id(
+        claims_df, contracts_df, config
+    )
     df = add_source_system(df, config["source_system"])
     df = add_source_system_id(df)
     df = add_transaction_type(df, config)
@@ -166,6 +208,5 @@ def build_transactions(
     df = add_system_timestamp(df)
     df = add_nse_id(df, hash_fn)
 
-    # Select only the target columns in schema order
     target_cols = [f.name for f in TRANSACTIONS_SCHEMA.fields]
     return df.select(*target_cols)
