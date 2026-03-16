@@ -5,12 +5,13 @@
 | Name                                            |    Stmts |     Miss |   Cover |   Missing |
 |------------------------------------------------ | -------: | -------: | ------: | --------: |
 | e3\_contracts\_to\_transactions/\_\_init\_\_.py |        0 |        0 |    100% |           |
-| e3\_contracts\_to\_transactions/api.py          |       15 |        0 |    100% |           |
-| e3\_contracts\_to\_transactions/io\_utils.py    |       29 |       18 |     38% |19-20, 25-26, 35-54 |
-| e3\_contracts\_to\_transactions/main.py         |       63 |       32 |     49% |30-58, 67-77, 113-132, 136-139 |
-| e3\_contracts\_to\_transactions/schemas.py      |        4 |        0 |    100% |           |
-| e3\_contracts\_to\_transactions/transform.py    |       32 |        0 |    100% |           |
-| **TOTAL**                                       |  **143** |   **50** | **65%** |           |
+| e3\_contracts\_to\_transactions/api.py          |       12 |        0 |    100% |           |
+| e3\_contracts\_to\_transactions/config.py       |       21 |        0 |    100% |           |
+| e3\_contracts\_to\_transactions/io\_utils.py    |       22 |        1 |     95% |        96 |
+| e3\_contracts\_to\_transactions/main.py         |       40 |        1 |     98% |       129 |
+| e3\_contracts\_to\_transactions/schemas.py      |        2 |        0 |    100% |           |
+| e3\_contracts\_to\_transactions/transform.py    |       68 |        2 |     97% |   92, 117 |
+| **TOTAL**                                       |  **165** |    **4** | **98%** |           |
 
 
 ## Setup coverage badge
