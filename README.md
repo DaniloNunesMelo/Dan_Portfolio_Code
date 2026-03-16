@@ -7,11 +7,11 @@
 | e3\_contracts\_to\_transactions/\_\_init\_\_.py |        0 |        0 |    100% |           |
 | e3\_contracts\_to\_transactions/api.py          |       12 |        0 |    100% |           |
 | e3\_contracts\_to\_transactions/config.py       |       21 |        0 |    100% |           |
-| e3\_contracts\_to\_transactions/io\_utils.py    |       22 |        1 |     95% |        96 |
+| e3\_contracts\_to\_transactions/io\_utils.py    |       22 |        0 |    100% |           |
 | e3\_contracts\_to\_transactions/main.py         |       40 |        1 |     98% |       129 |
 | e3\_contracts\_to\_transactions/schemas.py      |        2 |        0 |    100% |           |
-| e3\_contracts\_to\_transactions/transform.py    |       68 |        1 |     99% |       117 |
-| **TOTAL**                                       |  **165** |    **3** | **98%** |           |
+| e3\_contracts\_to\_transactions/transform.py    |       68 |        0 |    100% |           |
+| **TOTAL**                                       |  **165** |    **1** | **99%** |           |
 
 
 ## Setup coverage badge
