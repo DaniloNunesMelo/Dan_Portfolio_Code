@@ -2,75 +2,82 @@
 
 from __future__ import annotations
 
-import logging
-from typing import Any, Callable
+from typing import Callable
 
-import requests
-from tenacity import (
-    retry,
-    wait_exponential,
-    stop_after_attempt,
-    retry_if_exception_type,
-)
-
-logger = logging.getLogger(__name__)
+# ---------------------------------------------------------------------------
+# Default retry policy (all primitives — fully picklable)
+# ---------------------------------------------------------------------------
+DEFAULT_TOTAL_RETRIES: int = 3
+DEFAULT_BACKOFF_FACTOR: float = 0.5   # waits 0 s, 0.5 s, 1 s between attempts
+DEFAULT_RETRY_ON: tuple[int, ...] = (429, 500, 502, 503, 504)
+DEFAULT_TIMEOUT: int = 10
 
 
 def make_hashify_fn(
     base_url: str = "https://api.hashify.net/hash/md4/hex",
     response_field: str = "Digest",
-    timeout: int = 10,
-    max_retries: int = 3,
+    timeout: int = DEFAULT_TIMEOUT,
+    total_retries: int = DEFAULT_TOTAL_RETRIES,
+    backoff_factor: float = DEFAULT_BACKOFF_FACTOR,
+    retry_on_status: tuple[int, ...] = DEFAULT_RETRY_ON,
 ) -> Callable[[str | None], str | None]:
     """Return a ``(claim_id: str) -> str`` function that calls the Hashify API.
 
-    Parameters come from config so the URL and field name are not hardcoded.
-    Includes automatic retry logic for transient failures (timeout, connection errors).
+    All captured values are primitives so the closure is fully picklable by
+    Spark's cloudpickle (no top-level ``import requests`` in module scope).
+
+    Retry behaviour
+    ---------------
+    The returned function mounts a ``urllib3.util.Retry``-backed
+    ``HTTPAdapter`` on a fresh ``requests.Session`` per UDF invocation.
+    Retries fire on connection errors, read errors, and the HTTP status
+    codes listed in *retry_on_status* (default: 429, 5xx).
 
     Parameters
     ----------
-    base_url : str, default "https://api.hashify.net/hash/md4/hex"
-        API endpoint for hashing.
-    response_field : str, default "Digest"
-        JSON field name containing the hash result.
-    timeout : int, default 10
-        Request timeout in seconds.
-    max_retries : int, default 3
-        Maximum number of retry attempts for transient errors.
-
-    Returns
-    -------
-    Callable[[str | None], str | None]
-        A function mapping claim IDs to hash digests, or None for None input.
+    base_url:
+        Hashify endpoint.
+    response_field:
+        JSON key to extract from the response (default ``"Digest"``).
+    timeout:
+        Per-request socket timeout in seconds.
+    total_retries:
+        Maximum number of retry attempts (default 3).
+    backoff_factor:
+        Exponential back-off multiplier. Sleep between retries is
+        ``backoff_factor * 2 ** (attempt - 1)`` seconds.
+    retry_on_status:
+        HTTP status codes that trigger a retry.
     """
-
-    @retry(
-        wait=wait_exponential(multiplier=1, min=2, max=10),
-        stop=stop_after_attempt(max_retries),
-        retry=retry_if_exception_type((requests.Timeout, requests.ConnectionError)),
-        reraise=True,
-    )
-    def _hash_with_retry(claim_id: str) -> str:
-        """Internal function with retry decorator for transient failures."""
-        resp = requests.get(
-            base_url,
-            params={"value": claim_id},
-            timeout=timeout,
-        )
-        resp.raise_for_status()
-        payload: dict[str, Any] = resp.json()
-        return payload[response_field]
 
     def _hash(claim_id: str | None) -> str | None:
         if claim_id is None:
             return None
-        try:
-            return _hash_with_retry(claim_id)
-        except requests.RequestException:
-            logger.error(
-                f"Failed to hash claim_id={claim_id} after {max_retries} retries",
-                exc_info=True,
+
+        # Local imports keep the closure free of unpicklable thread-locals.
+        import requests
+        from requests.adapters import HTTPAdapter
+        from urllib3.util.retry import Retry
+
+        retry_policy = Retry(
+            total=total_retries,
+            backoff_factor=backoff_factor,
+            status_forcelist=list(retry_on_status),
+            allowed_methods=["GET"],
+            raise_on_status=False,   # let raise_for_status() handle it below
+        )
+        adapter = HTTPAdapter(max_retries=retry_policy)
+
+        with requests.Session() as session:
+            session.mount("https://", adapter)
+            session.mount("http://", adapter)
+
+            resp = session.get(
+                base_url,
+                params={"value": claim_id},
+                timeout=timeout,
             )
-            raise
+            resp.raise_for_status()
+            return resp.json()[response_field]
 
     return _hash
