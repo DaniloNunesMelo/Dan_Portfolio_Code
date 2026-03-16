@@ -50,7 +50,7 @@ jobs:
           python -m e3_contracts_to_transactions.main \
             --contracts data/contracts.csv \
             --claims data/claims.csv \
-            --output ..pyspark-transactions/output/TRANSACTIONS.csv
+            --output output/TRANSACTIONS.csv
       
       - name: Upload output as artifact
         uses: actions/upload-artifact@v4.6.0  # Latest patch version
