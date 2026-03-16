@@ -1,10 +1,13 @@
 """Tests for io_utils.py -- CSV read / write helpers.
 
 These tests target the previously uncovered lines 19-20, 25-26,
-35-54 from the coverage report.
+35-54, **96** from the coverage report.
 """
 
 from __future__ import annotations
+
+from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from pyspark.sql import DataFrame, SparkSession
@@ -170,3 +173,28 @@ class TestWriteCsv:
 
         write_csv(df, str(out_path))
         assert out_path.is_file()
+
+    def test_no_part_files_raises_runtime_error(self, spark, tmp_path):
+        """Cover io_utils.py:96 — RuntimeError when temp dir
+        contains no part-* files after a Spark write.
+        """
+        out_path = tmp_path / "output.csv"
+        df = self._make_df(spark)
+
+        original_glob = Path.glob
+
+        def _empty_part_glob(
+            self_path: Path,
+            pattern: str,
+        ) -> list:
+            """Return an empty list only for the part-* glob."""
+            if pattern == "part-*":
+                return []
+            return list(original_glob(self_path, pattern))
+
+        with patch.object(Path, "glob", _empty_part_glob):
+            with pytest.raises(
+                RuntimeError,
+                match="No part files found",
+            ):
+                write_csv(df, str(out_path))

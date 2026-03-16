@@ -244,6 +244,19 @@ class TestAddTransactionDirection:
         result = add_transaction_direction(df, cfg)
         assert result.collect()[0]["TRANSACTION_DIRECTION"] == "FRONTING"
 
+    def test_empty_direction_mapping_returns_null(self, spark):
+        """Cover transform.py:117 — empty mapping falls through
+        to the ``else`` branch that returns a NULL column.
+        """
+        cfg = {
+            "transaction_direction_mapping": {},
+            "transaction_type_mapping": {},
+            "transaction_type_default": "X",
+        }
+        df = _claims_df(spark, [self._row("CL_1")])
+        result = add_transaction_direction(df, cfg)
+        assert result.collect()[0]["TRANSACTION_DIRECTION"] is None
+
 
 # -- add_conformed_value ---------------------------------------
 
