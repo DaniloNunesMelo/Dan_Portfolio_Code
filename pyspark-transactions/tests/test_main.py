@@ -5,6 +5,7 @@ Targets previously uncovered lines 30-58, 67-77, 113-132,
 """
 
 from __future__ import annotations
+import runpy
 
 from textwrap import dedent
 from unittest.mock import MagicMock, patch
@@ -314,3 +315,10 @@ class TestMain:
                     str(tmp_path / "no_such.yaml"),
                 ]
             )
+
+
+def test_main_guard():
+    with pytest.MonkeyPatch.context() as mp:
+        # Optionally patch sys.argv or environment variables
+        mp.setattr("sys.argv", ["main.py", "--help"])  # or any safe arguments
+        runpy.run_module("e3_contracts_to_transactions.main", run_name="__main__")
