@@ -1,34 +1,27 @@
-"""Shared schema definitions for CONTRACT and CLAIM CSVs."""
+"""Shared StructType definitions for the Europe 3 pipeline."""
 
-from pyspark.sql.types import LongType, StringType, StructField, StructType
-
-CONTRACT_SCHEMA = StructType(
-    [
-        StructField("SOURCE_SYSTEM", StringType(), True),
-        StructField("CONTRACT_ID", LongType(), True),
-        StructField("CONTRACT_TYPE", StringType(), True),
-        StructField("INSURED_PERIOD_FROM", StringType(), True),
-        StructField("INSURED_PERIOD_TO", StringType(), True),
-        StructField("CREATION_DATE", StringType(), True),
-    ]
+from pyspark.sql.types import (
+    DateType,
+    DecimalType,
+    IntegerType,
+    LongType,
+    StringType,
+    StructField,
+    StructType,
+    TimestampType,
 )
 
-CLAIM_SCHEMA = StructType(
+TRANSACTIONS_SCHEMA = StructType(
     [
-        StructField("SOURCE_SYSTEM", StringType(), True),
-        StructField("CLAIM_ID", StringType(), True),
-        StructField("CONTRACT_SOURCE_SYSTEM", StringType(), True),
-        StructField("CONTRACT_ID", LongType(), True),
-        StructField("CLAIM_TYPE", StringType(), True),
-        StructField("DATE_OF_LOSS", StringType(), True),
-        StructField("AMOUNT", StringType(), True),
-        StructField("CREATION_DATE", StringType(), True),
-    ]
-)
-
-NSE_LOOKUP_SCHEMA = StructType(
-    [
-        StructField("CLAIM_ID", StringType(), False),
-        StructField("NSE_ID", StringType(), False),
+        StructField("CONTRACT_SOURCE_SYSTEM", StringType(), nullable=True),
+        StructField("CONTRACT_SOURCE_SYSTEM_ID", LongType(), nullable=True),
+        StructField("SOURCE_SYSTEM_ID", IntegerType(), nullable=True),
+        StructField("TRANSACTION_TYPE", StringType(), nullable=False),
+        StructField("TRANSACTION_DIRECTION", StringType(), nullable=True),
+        StructField("CONFORMED_VALUE", DecimalType(16, 5), nullable=True),
+        StructField("BUSINESS_DATE", DateType(), nullable=True),
+        StructField("CREATION_DATE", TimestampType(), nullable=True),
+        StructField("SYSTEM_TIMESTAMP", TimestampType(), nullable=True),
+        StructField("NSE_ID", StringType(), nullable=False),
     ]
 )

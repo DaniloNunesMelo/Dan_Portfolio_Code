@@ -1,54 +1,103 @@
-"""I/O helpers: read input CSVs, write a single output CSV."""
+"""CSV read / write helpers."""
 
 from __future__ import annotations
 
-import glob
 import logging
-import os
-import shutil
+from pathlib import Path
+from typing import Any
 
 from pyspark.sql import DataFrame, SparkSession
-
-from .schemas import CLAIM_SCHEMA, CONTRACT_SCHEMA
 
 logger = logging.getLogger(__name__)
 
 
-def read_contracts(spark: SparkSession, path: str) -> DataFrame:
-    """Read a CONTRACT CSV using the fixed schema."""
-    logger.info("Reading contracts from %s", path)
-    return spark.read.option("header", True).schema(CONTRACT_SCHEMA).csv(path)
+def read_csv(
+    spark: SparkSession,
+    path: str,
+    *,
+    header: bool = True,
+    infer_schema: bool = False,
+    delimiter: str = ",",
+) -> DataFrame:
+    """Read a CSV file into a Spark DataFrame.
 
+    Parameters
+    ----------
+    spark : SparkSession
+    path : str
+        Path to the CSV file.
+    header : bool
+        Whether the first row is a header.
+    infer_schema : bool
+        Let Spark infer column types (default False → all strings).
+    delimiter : str
+        Column delimiter.
 
-def read_claims(spark: SparkSession, path: str) -> DataFrame:
-    """Read a CLAIM CSV using the fixed schema."""
-    logger.info("Reading claims from %s", path)
-    return spark.read.option("header", True).schema(CLAIM_SCHEMA).csv(path)
+    Returns
+    -------
+    DataFrame
 
-
-def write_single_csv(df: DataFrame, output_path: str) -> None:
-    """Coalesce *df* to one partition and write a single CSV with header.
-
-    Spark writes CSV as a directory of part-files. This helper collapses
-    them into a single file so the submission is one CSV.
+    Raises
+    ------
+    FileNotFoundError
+        If *path* does not exist on the local filesystem.
     """
-    output_dir = os.path.dirname(os.path.abspath(output_path))
-    os.makedirs(output_dir, exist_ok=True)
+    if not Path(path).exists():
+        raise FileNotFoundError(f"Input file not found: {path}")
 
-    tmp_dir = output_path + "__tmp"
-    if os.path.exists(tmp_dir):
-        shutil.rmtree(tmp_dir)
+    logger.info("Reading CSV: %s", path)
+    return (
+        spark.read.option("header", header)
+        .option("inferSchema", infer_schema)
+        .option("delimiter", delimiter)
+        .csv(path)
+    )
 
-    df.coalesce(1).write.mode("overwrite").option("header", True).csv(tmp_dir)
 
-    part_files = glob.glob(os.path.join(tmp_dir, "part-*.csv"))
+def write_csv(
+    df: DataFrame,
+    path: str,
+    *,
+    header: bool = True,
+    delimiter: str = ",",
+    mode: str = "overwrite",
+) -> None:
+    """Write a DataFrame as a single CSV file.
+
+    Spark normally writes a directory of part files. This helper
+    coalesces to 1 partition so the user gets a single file, then
+    renames it to the requested *path*.
+
+    Parameters
+    ----------
+    df : DataFrame
+    path : str
+        Desired output file path.
+    header : bool
+    delimiter : str
+    mode : str
+        Spark write mode (``overwrite`` | ``append`` | ``error``).
+    """
+    out = Path(path)
+    tmp_dir = out.parent / f".tmp_{out.stem}"
+
+    logger.info("Writing CSV: %s (via temp dir %s)", path, tmp_dir)
+    (
+        df.coalesce(1)
+        .write.option("header", header)
+        .option("delimiter", delimiter)
+        .mode(mode)
+        .csv(str(tmp_dir))
+    )
+
+    # Find the single part-* file and move it
+    part_files = list(tmp_dir.glob("part-*"))
     if not part_files:
-        raise RuntimeError(f"No part-files found in {tmp_dir}")
+        raise RuntimeError(f"No part files found in {tmp_dir}")
 
-    if os.path.exists(output_path):
-        os.remove(output_path)
+    part_files[0].rename(out)
 
-    shutil.move(part_files[0], output_path)
-    shutil.rmtree(tmp_dir)
-
-    logger.info("Wrote %s", output_path)
+    # Clean up temp directory
+    import shutil
+    shutil.rmtree(tmp_dir, ignore_errors=True)
+    logger.info("Output written: %s", out)

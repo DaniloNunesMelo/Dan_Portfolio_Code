@@ -1,511 +1,308 @@
-"""Unit tests for every transformation rule.
-
-Design principles:
-- Each test builds its own minimal in-memory DataFrame (no file I/O).
-- Each test covers ONE mapping rule so failures pinpoint the broken rule.
-- A final integration test exercises the full pipeline with all edge-cases.
-"""
+"""Unit tests for every transformation rule in transform.py."""
 
 from __future__ import annotations
 
 from decimal import Decimal
+from datetime import date, datetime
 
 import pytest
-from pyspark.sql import functions as F
-from pyspark.sql.types import (
-    DateType,
-    DecimalType,
-    IntegerType,
-    LongType,
-    StringType,
-    TimestampType,
-)
+from pyspark.sql import SparkSession
+from pyspark.sql.types import StringType, StructField, StructType
 
 from e3_contracts_to_transactions.transform import (
+    add_business_date,
+    add_conformed_value,
+    add_contract_source_system_id,
+    add_creation_date,
+    add_nse_id,
+    add_source_system,
+    add_source_system_id,
+    add_system_timestamp,
+    add_transaction_direction,
+    add_transaction_type,
     build_transactions,
-    cast_conformed_value,
-    extract_source_system_id,
-    join_claims_to_contracts,
-    join_nse_lookup,
-    map_transaction_direction,
-    map_transaction_type,
-    parse_business_date,
-    parse_creation_date,
-    prepare_claims,
-    prepare_contracts,
 )
 
-# Import the helpers directly (they live in conftest but are plain functions)
-from tests.conftest import make_claims, make_contracts, make_nse_lookup
+
+# ── Helpers ──────────────────────────────────────────────────────
 
 
-# ------------------------------------------------------------------
-# Helpers
-# ------------------------------------------------------------------
+def _claims_df(spark: SparkSession, rows: list[tuple]) -> "DataFrame":
+    schema = StructType(
+        [
+            StructField("CLAIM_ID", StringType()),
+            StructField("CONTRACT_SOURCE_SYSTEM", StringType()),
+            StructField("CONTRACT_ID", StringType()),
+            StructField("CLAIM_TYPE", StringType()),
+            StructField("DATE_OF_LOSS", StringType()),
+            StructField("AMOUNT", StringType()),
+            StructField("CREATION_DATE", StringType()),
+        ]
+    )
+    return spark.createDataFrame(rows, schema)
 
 
-def _collect_column(df, col_name):
-    """Return a plain Python list of values for *col_name*."""
-    return [row[col_name] for row in df.select(col_name).collect()]
+def _contracts_df(spark: SparkSession, rows: list[tuple]) -> "DataFrame":
+    schema = StructType(
+        [
+            StructField("SOURCE_SYSTEM", StringType()),
+            StructField("CONTRACT_ID", StringType()),
+        ]
+    )
+    return spark.createDataFrame(rows, schema)
 
 
-# ------------------------------------------------------------------
-# Column mapping tests
-# ------------------------------------------------------------------
+# ── add_source_system ────────────────────────────────────────────
 
 
-class TestTransactionType:
-    """TRANSACTION_TYPE: 2->Corporate, 1->Private, else->Unknown."""
+class TestAddSourceSystem:
+    def test_literal_value(self, spark):
+        df = _claims_df(spark, [("CL_1", "S", "100", "1", "01.01.2020", "10", "01.01.2020 10:00")])
+        result = add_source_system(df, "Europe 3")
+        assert result.collect()[0]["CONTRACT_SOURCE_SYSTEM"] == "Europe 3"
 
-    def test_corporate(self, spark):
-        df = spark.createDataFrame([("2",)], ["CLAIM_TYPE"])
-        result = df.select(map_transaction_type(F.col("CLAIM_TYPE")).alias("tt"))
-        assert _collect_column(result, "tt") == ["Corporate"]
-
-    def test_private(self, spark):
-        df = spark.createDataFrame([("1",)], ["CLAIM_TYPE"])
-        result = df.select(map_transaction_type(F.col("CLAIM_TYPE")).alias("tt"))
-        assert _collect_column(result, "tt") == ["Private"]
-
-    def test_unknown_for_empty(self, spark):
-        df = spark.createDataFrame([("",)], ["CLAIM_TYPE"])
-        result = df.select(map_transaction_type(F.col("CLAIM_TYPE")).alias("tt"))
-        assert _collect_column(result, "tt") == ["Unknown"]
-
-    def test_unknown_for_null(self, spark):
-        from pyspark.sql.types import StructType, StructField
-
-        schema = StructType([StructField("CLAIM_TYPE", StringType(), True)])
-        df = spark.createDataFrame([(None,)], schema=schema)
-        result = df.select(map_transaction_type(F.col("CLAIM_TYPE")).alias("tt"))
-        assert _collect_column(result, "tt") == ["Unknown"]
-
-    def test_unknown_for_unexpected_value(self, spark):
-        df = spark.createDataFrame([("99",)], ["CLAIM_TYPE"])
-        result = df.select(map_transaction_type(F.col("CLAIM_TYPE")).alias("tt"))
-        assert _collect_column(result, "tt") == ["Unknown"]
+    def test_custom_source_system(self, spark):
+        df = _claims_df(spark, [("CL_1", "S", "100", "1", "01.01.2020", "10", "01.01.2020 10:00")])
+        result = add_source_system(df, "Asia 1")
+        assert result.collect()[0]["CONTRACT_SOURCE_SYSTEM"] == "Asia 1"
 
 
-class TestTransactionDirection:
-    """TRANSACTION_DIRECTION: CL->COINSURANCE, RX->REINSURANCE, else->null."""
-
-    def test_coinsurance(self, spark):
-        df = spark.createDataFrame([("CL_123",)], ["CLAIM_ID"])
-        result = df.select(map_transaction_direction(F.col("CLAIM_ID")).alias("td"))
-        assert _collect_column(result, "td") == ["COINSURANCE"]
-
-    def test_reinsurance(self, spark):
-        df = spark.createDataFrame([("RX_456",)], ["CLAIM_ID"])
-        result = df.select(map_transaction_direction(F.col("CLAIM_ID")).alias("td"))
-        assert _collect_column(result, "td") == ["REINSURANCE"]
-
-    def test_null_for_cx_prefix(self, spark):
-        df = spark.createDataFrame([("CX_789",)], ["CLAIM_ID"])
-        result = df.select(map_transaction_direction(F.col("CLAIM_ID")).alias("td"))
-        assert _collect_column(result, "td") == [None]
-
-    def test_null_for_u_prefix(self, spark):
-        df = spark.createDataFrame([("U_000",)], ["CLAIM_ID"])
-        result = df.select(map_transaction_direction(F.col("CLAIM_ID")).alias("td"))
-        assert _collect_column(result, "td") == [None]
+# ── add_source_system_id ─────────────────────────────────────────
 
 
-class TestSourceSystemId:
-    """SOURCE_SYSTEM_ID: trailing digits of CLAIM_ID."""
+class TestAddSourceSystemId:
+    @pytest.mark.parametrize(
+        "claim_id, expected",
+        [
+            ("CL_68545123", 68545123),
+            ("RX_9845163", 9845163),
+            ("CX_12066501", 12066501),
+            ("U_7065313", 7065313),
+            ("A_123", 123),
+        ],
+    )
+    def test_extracts_numeric_suffix(self, spark, claim_id, expected):
+        df = _claims_df(spark, [(claim_id, "S", "1", "1", "01.01.2020", "10", "01.01.2020 10:00")])
+        result = add_source_system_id(df)
+        assert result.collect()[0]["SOURCE_SYSTEM_ID"] == expected
 
-    def test_cl_prefix(self, spark):
-        df = spark.createDataFrame([("CL_68545123",)], ["CLAIM_ID"])
-        result = df.select(extract_source_system_id(F.col("CLAIM_ID")).alias("ssid"))
-        assert _collect_column(result, "ssid") == [68545123]
-
-    def test_rx_prefix(self, spark):
-        df = spark.createDataFrame([("RX_9845163",)], ["CLAIM_ID"])
-        result = df.select(extract_source_system_id(F.col("CLAIM_ID")).alias("ssid"))
-        assert _collect_column(result, "ssid") == [9845163]
-
-    def test_u_prefix(self, spark):
-        df = spark.createDataFrame([("U_7065313",)], ["CLAIM_ID"])
-        result = df.select(extract_source_system_id(F.col("CLAIM_ID")).alias("ssid"))
-        assert _collect_column(result, "ssid") == [7065313]
-
-    def test_no_digits_returns_null(self, spark):
-        """ANSI-safe: claim ID with no digits should return null, not throw."""
-        df = spark.createDataFrame([("NO_DIGITS",)], ["CLAIM_ID"])
-        result = df.select(extract_source_system_id(F.col("CLAIM_ID")).alias("ssid"))
-        assert _collect_column(result, "ssid") == [None]
+    def test_no_underscore_returns_null(self, spark):
+        df = _claims_df(spark, [("NOUNDERSCORE", "S", "1", "1", "01.01.2020", "10", "01.01.2020 10:00")])
+        result = add_source_system_id(df)
+        assert result.collect()[0]["SOURCE_SYSTEM_ID"] is None
 
 
-class TestDateParsing:
-    """BUSINESS_DATE from dd.MM.yyyy and CREATION_DATE from dd.MM.yyyy HH:mm."""
-
-    def test_business_date(self, spark):
-        df = spark.createDataFrame([("14.02.2021",)], ["d"])
-        result = df.select(parse_business_date(F.col("d")).alias("bd"))
-        assert str(_collect_column(result, "bd")[0]) == "2021-02-14"
-
-    def test_creation_date(self, spark):
-        df = spark.createDataFrame([("17.01.2022 14:45",)], ["d"])
-        result = df.select(parse_creation_date(F.col("d")).cast("string").alias("cd"))
-        assert _collect_column(result, "cd") == ["2022-01-17 14:45:00"]
-
-    def test_business_date_null_for_invalid(self, spark):
-        df = spark.createDataFrame([("not-a-date",)], ["d"])
-        result = df.select(parse_business_date(F.col("d")).alias("bd"))
-        assert _collect_column(result, "bd") == [None]
+# ── add_transaction_type ─────────────────────────────────────────
 
 
-class TestConformedValue:
-    """CONFORMED_VALUE: AMOUNT as decimal(16,5)."""
+class TestAddTransactionType:
+    def test_corporate(self, spark, default_config):
+        df = _claims_df(spark, [("CL_1", "S", "1", "2", "01.01.2020", "10", "01.01.2020 10:00")])
+        result = add_transaction_type(df, default_config)
+        assert result.collect()[0]["TRANSACTION_TYPE"] == "Corporate"
 
-    def test_decimal_amount(self, spark):
-        df = spark.createDataFrame([("523.21",)], ["amt"])
-        result = df.select(cast_conformed_value(F.col("amt")).alias("cv"))
-        assert _collect_column(result, "cv") == [Decimal("523.21000")]
+    def test_private(self, spark, default_config):
+        df = _claims_df(spark, [("CL_1", "S", "1", "1", "01.01.2020", "10", "01.01.2020 10:00")])
+        result = add_transaction_type(df, default_config)
+        assert result.collect()[0]["TRANSACTION_TYPE"] == "Private"
+
+    def test_empty_claim_type_defaults_to_unknown(self, spark, default_config):
+        df = _claims_df(spark, [("CL_1", "S", "1", "", "01.01.2020", "10", "01.01.2020 10:00")])
+        result = add_transaction_type(df, default_config)
+        assert result.collect()[0]["TRANSACTION_TYPE"] == "Unknown"
+
+    def test_null_claim_type_defaults_to_unknown(self, spark, default_config):
+        df = _claims_df(spark, [("CL_1", "S", "1", None, "01.01.2020", "10", "01.01.2020 10:00")])
+        result = add_transaction_type(df, default_config)
+        assert result.collect()[0]["TRANSACTION_TYPE"] == "Unknown"
+
+    def test_unknown_claim_type_defaults(self, spark, default_config):
+        df = _claims_df(spark, [("CL_1", "S", "1", "99", "01.01.2020", "10", "01.01.2020 10:00")])
+        result = add_transaction_type(df, default_config)
+        assert result.collect()[0]["TRANSACTION_TYPE"] == "Unknown"
+
+    def test_custom_mapping_from_config(self, spark):
+        """Verify the mapping is truly driven by config, not hardcoded."""
+        custom_config = {
+            "transaction_type_mapping": {"3": "Government", "4": "NGO"},
+            "transaction_type_default": "Unclassified",
+        }
+        df = _claims_df(spark, [
+            ("CL_1", "S", "1", "3", "01.01.2020", "10", "01.01.2020 10:00"),
+            ("CL_2", "S", "1", "4", "01.01.2020", "10", "01.01.2020 10:00"),
+            ("CL_3", "S", "1", "1", "01.01.2020", "10", "01.01.2020 10:00"),
+        ])
+        result = add_transaction_type(df, custom_config).collect()
+        assert result[0]["TRANSACTION_TYPE"] == "Government"
+        assert result[1]["TRANSACTION_TYPE"] == "NGO"
+        assert result[2]["TRANSACTION_TYPE"] == "Unclassified"  # "1" not in custom mapping
+
+    def test_empty_mapping_uses_default(self, spark):
+        cfg = {"transaction_type_mapping": {}, "transaction_type_default": "Fallback"}
+        df = _claims_df(spark, [("CL_1", "S", "1", "2", "01.01.2020", "10", "01.01.2020 10:00")])
+        result = add_transaction_type(df, cfg)
+        assert result.collect()[0]["TRANSACTION_TYPE"] == "Fallback"
+
+
+# ── add_transaction_direction ────────────────────────────────────
+
+
+class TestAddTransactionDirection:
+    def test_cl_prefix(self, spark, default_config):
+        df = _claims_df(spark, [("CL_123", "S", "1", "1", "01.01.2020", "10", "01.01.2020 10:00")])
+        result = add_transaction_direction(df, default_config)
+        assert result.collect()[0]["TRANSACTION_DIRECTION"] == "COINSURANCE"
+
+    def test_rx_prefix(self, spark, default_config):
+        df = _claims_df(spark, [("RX_456", "S", "1", "1", "01.01.2020", "10", "01.01.2020 10:00")])
+        result = add_transaction_direction(df, default_config)
+        assert result.collect()[0]["TRANSACTION_DIRECTION"] == "REINSURANCE"
+
+    def test_cx_prefix_returns_null(self, spark, default_config):
+        df = _claims_df(spark, [("CX_789", "S", "1", "1", "01.01.2020", "10", "01.01.2020 10:00")])
+        result = add_transaction_direction(df, default_config)
+        assert result.collect()[0]["TRANSACTION_DIRECTION"] is None
+
+    def test_u_prefix_returns_null(self, spark, default_config):
+        df = _claims_df(spark, [("U_111", "S", "1", "1", "01.01.2020", "10", "01.01.2020 10:00")])
+        result = add_transaction_direction(df, default_config)
+        assert result.collect()[0]["TRANSACTION_DIRECTION"] is None
+
+    def test_custom_direction_from_config(self, spark):
+        cfg = {
+            "transaction_direction_mapping": {"XX": "FRONTING"},
+            "transaction_type_mapping": {},
+            "transaction_type_default": "X",
+        }
+        df = _claims_df(spark, [("XX_1", "S", "1", "1", "01.01.2020", "10", "01.01.2020 10:00")])
+        result = add_transaction_direction(df, cfg)
+        assert result.collect()[0]["TRANSACTION_DIRECTION"] == "FRONTING"
+
+
+# ── add_conformed_value ──────────────────────────────────────────
+
+
+class TestAddConformedValue:
+    def test_decimal_cast(self, spark):
+        df = _claims_df(spark, [("CL_1", "S", "1", "1", "01.01.2020", "523.21", "01.01.2020 10:00")])
+        result = add_conformed_value(df)
+        val = result.collect()[0]["CONFORMED_VALUE"]
+        assert val == Decimal("523.21000")
 
     def test_integer_amount(self, spark):
-        df = spark.createDataFrame([("98465",)], ["amt"])
-        result = df.select(cast_conformed_value(F.col("amt")).alias("cv"))
-        assert _collect_column(result, "cv") == [Decimal("98465.00000")]
+        df = _claims_df(spark, [("CL_1", "S", "1", "1", "01.01.2020", "98465", "01.01.2020 10:00")])
+        result = add_conformed_value(df)
+        val = result.collect()[0]["CONFORMED_VALUE"]
+        assert val == Decimal("98465.00000")
 
-    def test_null_amount_returns_null(self, spark):
-        """ANSI-safe: null AMOUNT should return null, not throw."""
-        from pyspark.sql.types import StructType, StructField
-
-        schema = StructType([StructField("amt", StringType(), True)])
-        df = spark.createDataFrame([(None,)], schema=schema)
-        result = df.select(cast_conformed_value(F.col("amt")).alias("cv"))
-        assert _collect_column(result, "cv") == [None]
-
-    def test_empty_amount_returns_null(self, spark):
-        """ANSI-safe: empty string AMOUNT should return null, not throw."""
-        df = spark.createDataFrame([("",)], ["amt"])
-        result = df.select(cast_conformed_value(F.col("amt")).alias("cv"))
-        assert _collect_column(result, "cv") == [None]
+    def test_null_amount(self, spark):
+        df = _claims_df(spark, [("CL_1", "S", "1", "1", "01.01.2020", None, "01.01.2020 10:00")])
+        result = add_conformed_value(df)
+        assert result.collect()[0]["CONFORMED_VALUE"] is None
 
 
-# ------------------------------------------------------------------
-# Join tests
-# ------------------------------------------------------------------
+# ── add_business_date ────────────────────────────────────────────
 
 
-class TestContractJoin:
-    """Left join: claims matched by source system + contract id."""
+class TestAddBusinessDate:
+    def test_parses_dd_mm_yyyy(self, spark):
+        df = _claims_df(spark, [("CL_1", "S", "1", "1", "14.02.2021", "10", "01.01.2020 10:00")])
+        result = add_business_date(df, "dd.MM.yyyy")
+        assert result.collect()[0]["BUSINESS_DATE"] == date(2021, 2, 14)
 
-    def test_matching_contract(self, spark):
-        contracts = make_contracts(
-            spark,
-            [
-                ("Contract_SR_Europa_3", 100, "Direct", "", "", ""),
-            ],
-        )
-        claims = make_claims(
-            spark,
-            [
-                (
-                    "Claim_SR",
-                    "CL_1",
-                    "Contract_SR_Europa_3",
-                    100,
-                    "1",
-                    "01.01.2020",
-                    "10",
-                    "01.01.2020 10:00",
-                ),
-            ],
-        )
-        pc = prepare_contracts(contracts)
-        pcl = prepare_claims(claims)
-        joined = join_claims_to_contracts(pcl, pc)
-        row = joined.collect()[0]
-        assert row["CONTRACT_CONTRACT_ID"] == 100
-
-    def test_no_match_returns_null(self, spark):
-        contracts = make_contracts(
-            spark,
-            [
-                ("Contract_SR_Europa_3", 100, "Direct", "", "", ""),
-            ],
-        )
-        claims = make_claims(
-            spark,
-            [
-                (
-                    "Claim_SR",
-                    "CL_2",
-                    "Contract_SR_Europa_4",
-                    100,
-                    "1",
-                    "01.01.2020",
-                    "10",
-                    "01.01.2020 10:00",
-                ),
-            ],
-        )
-        pc = prepare_contracts(contracts)
-        pcl = prepare_claims(claims)
-        joined = join_claims_to_contracts(pcl, pc)
-        row = joined.collect()[0]
-        assert row["CONTRACT_CONTRACT_ID"] is None
-
-    def test_no_match_on_unknown_contract_id(self, spark):
-        contracts = make_contracts(
-            spark,
-            [
-                ("Contract_SR_Europa_3", 100, "Direct", "", "", ""),
-            ],
-        )
-        claims = make_claims(
-            spark,
-            [
-                (
-                    "Claim_SR",
-                    "CL_3",
-                    "Contract_SR_Europa_3",
-                    999,
-                    "2",
-                    "01.01.2020",
-                    "10",
-                    "01.01.2020 10:00",
-                ),
-            ],
-        )
-        pc = prepare_contracts(contracts)
-        pcl = prepare_claims(claims)
-        joined = join_claims_to_contracts(pcl, pc)
-        row = joined.collect()[0]
-        assert row["CONTRACT_CONTRACT_ID"] is None
+    def test_null_date(self, spark):
+        df = _claims_df(spark, [("CL_1", "S", "1", "1", None, "10", "01.01.2020 10:00")])
+        result = add_business_date(df, "dd.MM.yyyy")
+        assert result.collect()[0]["BUSINESS_DATE"] is None
 
 
-class TestNseLookupJoin:
-    """NSE lookup join attaches pre-computed NSE_ID."""
+# ── add_creation_date ────────────────────────────────────────────
 
-    def test_nse_id_attached(self, spark):
-        claims = make_claims(
-            spark,
-            [
-                (
-                    "Claim_SR",
-                    "CL_1",
-                    "X",
-                    1,
-                    "1",
-                    "01.01.2020",
-                    "10",
-                    "01.01.2020 10:00",
-                ),
-            ],
-        )
-        lookup = make_nse_lookup(spark, [("CL_1", "abc123")])
-        pcl = prepare_claims(claims)
-        result = join_nse_lookup(pcl, lookup)
-        assert result.collect()[0]["NSE_ID"] == "abc123"
 
-    def test_missing_nse_returns_null(self, spark):
-        claims = make_claims(
-            spark,
-            [
-                (
-                    "Claim_SR",
-                    "CL_UNKNOWN",
-                    "X",
-                    1,
-                    "1",
-                    "01.01.2020",
-                    "10",
-                    "01.01.2020 10:00",
-                ),
-            ],
-        )
-        lookup = make_nse_lookup(spark, [("CL_OTHER", "abc123")])
-        pcl = prepare_claims(claims)
-        result = join_nse_lookup(pcl, lookup)
+class TestAddCreationDate:
+    def test_parses_datetime(self, spark):
+        df = _claims_df(spark, [("CL_1", "S", "1", "1", "01.01.2020", "10", "17.01.2022 14:45")])
+        result = add_creation_date(df, "dd.MM.yyyy HH:mm")
+        ts = result.collect()[0]["CREATION_DATE"]
+        assert ts == datetime(2022, 1, 17, 14, 45)
+
+    def test_null_creation_date(self, spark):
+        df = _claims_df(spark, [("CL_1", "S", "1", "1", "01.01.2020", "10", None)])
+        result = add_creation_date(df, "dd.MM.yyyy HH:mm")
+        assert result.collect()[0]["CREATION_DATE"] is None
+
+
+# ── add_system_timestamp ─────────────────────────────────────────
+
+
+class TestAddSystemTimestamp:
+    def test_not_null(self, spark):
+        df = _claims_df(spark, [("CL_1", "S", "1", "1", "01.01.2020", "10", "01.01.2020 10:00")])
+        result = add_system_timestamp(df)
+        assert result.collect()[0]["SYSTEM_TIMESTAMP"] is not None
+
+
+# ── add_nse_id ───────────────────────────────────────────────────
+
+
+class TestAddNseId:
+    def test_applies_hash_fn(self, spark):
+        df = _claims_df(spark, [("CL_1", "S", "1", "1", "01.01.2020", "10", "01.01.2020 10:00")])
+        result = add_nse_id(df, lambda cid: f"hash_{cid}")
+        assert result.collect()[0]["NSE_ID"] == "hash_CL_1"
+
+    def test_null_claim_id(self, spark):
+        df = _claims_df(spark, [(None, "S", "1", "1", "01.01.2020", "10", "01.01.2020 10:00")])
+        result = add_nse_id(df, lambda cid: None if cid is None else f"hash_{cid}")
         assert result.collect()[0]["NSE_ID"] is None
 
 
-# ------------------------------------------------------------------
-# Full integration test
-# ------------------------------------------------------------------
+# ── add_contract_source_system_id (join) ─────────────────────────
 
 
-class TestBuildTransactionsIntegration:
-    """End-to-end: build_transactions with representative mock data."""
+class TestAddContractSourceSystemId:
+    def test_matching_join(self, spark, default_config):
+        claims = _claims_df(spark, [("CL_1", "SYS_A", "100", "1", "01.01.2020", "10", "01.01.2020 10:00")])
+        contracts = _contracts_df(spark, [("SYS_A", "100")])
+        result = add_contract_source_system_id(claims, contracts, default_config)
+        assert result.collect()[0]["CONTRACT_SOURCE_SYSTEM_ID"] == 100
 
-    @pytest.fixture()
-    def result(self, spark):
-        contracts = make_contracts(
-            spark,
-            [
-                (
-                    "Contract_SR_Europa_3",
-                    97563756,
-                    None,
-                    "01.01.2015",
-                    "01.01.2099",
-                    "17.01.2022 13:42",
-                ),
-                (
-                    "Contract_SR_Europa_3",
-                    13767503,
-                    "Reinsurance",
-                    "01.01.2015",
-                    "01.01.2099",
-                    "17.01.2022 13:42",
-                ),
-                (
-                    "Contract_SR_Europa_3",
-                    656948536,
-                    None,
-                    "01.01.2015",
-                    "01.01.2099",
-                    "17.01.2022 13:42",
-                ),
-            ],
-        )
-        claims = make_claims(
-            spark,
-            [
-                # Matched corporate coinsurance
-                (
-                    "Claim_SR",
-                    "CL_68545123",
-                    "Contract_SR_Europa_3",
-                    97563756,
-                    "2",
-                    "14.02.2021",
-                    "523.21",
-                    "17.01.2022 14:45",
-                ),
-                # Source system mismatch -> null contract id
-                (
-                    "Claim_SR",
-                    "CL_962234",
-                    "Contract_SR_Europa_4",
-                    408124123,
-                    "1",
-                    "30.01.2021",
-                    "52369.0",
-                    "17.01.2022 14:46",
-                ),
-                # Empty claim type -> Unknown
-                (
-                    "Claim_SR",
-                    "CL_895168",
-                    "Contract_SR_Europa_3",
-                    13767503,
-                    "",
-                    "02.09.2020",
-                    "98465",
-                    "17.01.2022 14:45",
-                ),
-                # CX prefix -> null direction
-                (
-                    "Claim_SR",
-                    "CX_12066501",
-                    "Contract_SR_Europa_3",
-                    656948536,
-                    "2",
-                    "04.01.2022",
-                    "9000",
-                    "17.01.2022 14:45",
-                ),
-                # RX prefix -> REINSURANCE
-                (
-                    "Claim_SR",
-                    "RX_9845163",
-                    "Contract_SR_Europa_3",
-                    656948536,
-                    "2",
-                    "04.06.2015",
-                    "11000",
-                    "17.01.2022 14:45",
-                ),
-                # U prefix -> null direction + contract id mismatch
-                (
-                    "Claim_SR",
-                    "U_7065313",
-                    "Contract_SR_Europa_3",
-                    46589516,
-                    "1",
-                    "29.09.2021",
-                    "11000",
-                    "17.01.2022 14:46",
-                ),
-            ],
-        )
-        nse = make_nse_lookup(
-            spark,
-            [
-                ("CL_68545123", "hash_CL_68545123"),
-                ("CL_962234", "hash_CL_962234"),
-                ("CL_895168", "hash_CL_895168"),
-                ("CX_12066501", "hash_CX_12066501"),
-                ("RX_9845163", "hash_RX_9845163"),
-                ("U_7065313", "hash_U_7065313"),
-            ],
-        )
-        return build_transactions(contracts, claims, nse_lookup_df=nse)
+    def test_non_matching_join_returns_null(self, spark, default_config):
+        claims = _claims_df(spark, [("CL_1", "SYS_A", "999", "1", "01.01.2020", "10", "01.01.2020 10:00")])
+        contracts = _contracts_df(spark, [("SYS_A", "100")])
+        result = add_contract_source_system_id(claims, contracts, default_config)
+        assert result.collect()[0]["CONTRACT_SOURCE_SYSTEM_ID"] is None
 
-    def test_row_count(self, result):
-        assert result.count() == 6
+    def test_different_source_system_no_match(self, spark, default_config):
+        claims = _claims_df(spark, [("CL_1", "SYS_B", "100", "1", "01.01.2020", "10", "01.01.2020 10:00")])
+        contracts = _contracts_df(spark, [("SYS_A", "100")])
+        result = add_contract_source_system_id(claims, contracts, default_config)
+        assert result.collect()[0]["CONTRACT_SOURCE_SYSTEM_ID"] is None
 
-    def test_schema_types(self, result):
-        fields = {f.name: f.dataType for f in result.schema.fields}
-        assert isinstance(fields["CONTRACT_SOURCE_SYSTEM"], StringType)
-        assert isinstance(fields["CONTRACT_SOURCE_SYSTEM_ID"], LongType)
-        assert isinstance(fields["SOURCE_SYSTEM_ID"], IntegerType)
-        assert isinstance(fields["TRANSACTION_TYPE"], StringType)
-        assert isinstance(fields["TRANSACTION_DIRECTION"], StringType)
-        assert isinstance(fields["CONFORMED_VALUE"], DecimalType)
-        assert isinstance(fields["BUSINESS_DATE"], DateType)
-        assert isinstance(fields["CREATION_DATE"], TimestampType)
-        assert isinstance(fields["SYSTEM_TIMESTAMP"], TimestampType)
-        assert isinstance(fields["NSE_ID"], StringType)
 
-    def test_all_rows_have_source_system_europe_3(self, result):
-        values = _collect_column(result, "CONTRACT_SOURCE_SYSTEM")
-        assert all(v == "Europe 3" for v in values)
+# ── build_transactions (end-to-end) ──────────────────────────────
 
-    def test_matched_corporate_coinsurance(self, result):
-        # Cast timestamps to string inside Spark (respects session TZ = UTC)
-        # to avoid Python's local-timezone str() conversion.
-        rows_df = result.withColumn(
-            "CREATION_DATE_STR",
-            F.col("CREATION_DATE").cast("string"),
-        )
-        rows = {r["SOURCE_SYSTEM_ID"]: r for r in rows_df.collect()}
-        r = rows[68545123]
-        assert r["CONTRACT_SOURCE_SYSTEM_ID"] == 97563756
-        assert r["TRANSACTION_TYPE"] == "Corporate"
-        assert r["TRANSACTION_DIRECTION"] == "COINSURANCE"
-        assert r["CONFORMED_VALUE"] == Decimal("523.21000")
-        assert str(r["BUSINESS_DATE"]) == "2021-02-14"
-        assert r["CREATION_DATE_STR"] == "2022-01-17 14:45:00"
-        assert r["NSE_ID"] == "hash_CL_68545123"
 
-    def test_source_system_mismatch_null_contract(self, result):
-        rows = {r["SOURCE_SYSTEM_ID"]: r for r in result.collect()}
-        r = rows[962234]
-        assert r["CONTRACT_SOURCE_SYSTEM_ID"] is None
-        assert r["TRANSACTION_TYPE"] == "Private"
-        assert r["TRANSACTION_DIRECTION"] == "COINSURANCE"
+class TestBuildTransactions:
+    def test_output_columns(self, spark, default_config):
+        claims = _claims_df(spark, [("CL_123", "SYS", "1", "2", "14.02.2021", "100", "17.01.2022 14:45")])
+        contracts = _contracts_df(spark, [("SYS", "1")])
+        result = build_transactions(claims, contracts, default_config, lambda c: "abc123")
+        expected_cols = [
+            "CONTRACT_SOURCE_SYSTEM", "CONTRACT_SOURCE_SYSTEM_ID",
+            "SOURCE_SYSTEM_ID", "TRANSACTION_TYPE", "TRANSACTION_DIRECTION",
+            "CONFORMED_VALUE", "BUSINESS_DATE", "CREATION_DATE",
+            "SYSTEM_TIMESTAMP", "NSE_ID",
+        ]
+        assert result.columns == expected_cols
 
-    def test_empty_claim_type_is_unknown(self, result):
-        rows = {r["SOURCE_SYSTEM_ID"]: r for r in result.collect()}
-        r = rows[895168]
-        assert r["TRANSACTION_TYPE"] == "Unknown"
-
-    def test_cx_prefix_direction_is_null(self, result):
-        rows = {r["SOURCE_SYSTEM_ID"]: r for r in result.collect()}
-        r = rows[12066501]
-        assert r["TRANSACTION_DIRECTION"] is None
-
-    def test_rx_prefix_direction_is_reinsurance(self, result):
-        rows = {r["SOURCE_SYSTEM_ID"]: r for r in result.collect()}
-        r = rows[9845163]
-        assert r["TRANSACTION_DIRECTION"] == "REINSURANCE"
-
-    def test_unknown_prefix_null_direction_and_null_contract(self, result):
-        rows = {r["SOURCE_SYSTEM_ID"]: r for r in result.collect()}
-        r = rows[7065313]
-        assert r["TRANSACTION_DIRECTION"] is None
-        assert r["CONTRACT_SOURCE_SYSTEM_ID"] is None
+    def test_single_row_values(self, spark, default_config):
+        claims = _claims_df(spark, [("CL_123", "SYS", "1", "2", "14.02.2021", "100.5", "17.01.2022 14:45")])
+        contracts = _contracts_df(spark, [("SYS", "1")])
+        result = build_transactions(claims, contracts, default_config, lambda c: "deadbeef")
+        row = result.collect()[0]
+        assert row["CONTRACT_SOURCE_SYSTEM"] == "Europe 3"
+        assert row["SOURCE_SYSTEM_ID"] == 123
+        assert row["TRANSACTION_TYPE"] == "Corporate"
+        assert row["TRANSACTION_DIRECTION"] == "COINSURANCE"
+        assert row["NSE_ID"] == "deadbeef"

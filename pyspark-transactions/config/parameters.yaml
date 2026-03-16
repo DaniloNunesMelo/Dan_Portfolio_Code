@@ -1,0 +1,44 @@
+# ──────────────────────────────────────────────────────────
+# Europe 3 – Pipeline Parameters
+# ──────────────────────────────────────────────────────────
+# Edit this file to change business rules without touching code.
+
+# Source system identifier written to every output row
+source_system: "Europe 3"
+
+# ── Transaction type mapping ──────────────────────────────
+# Maps CLAIM_TYPE values (as strings) to human-readable labels.
+# Add / remove entries as new claim types are introduced.
+transaction_type_mapping:
+  "1": "Private"
+  "2": "Corporate"
+
+# Fallback when CLAIM_TYPE is null or not found in the mapping above
+transaction_type_default: "Unknown"
+
+# ── Transaction direction mapping ─────────────────────────
+# Maps CLAIM_ID prefix to direction. Prefix match is case-sensitive.
+transaction_direction_mapping:
+  "CL": "COINSURANCE"
+  "RX": "REINSURANCE"
+
+# ── Date formats (input) ──────────────────────────────────
+date_of_loss_format: "dd.MM.yyyy"
+creation_date_format: "dd.MM.yyyy HH:mm"
+
+# ── Hashify API ───────────────────────────────────────────
+hashify_base_url: "https://api.hashify.net/hash/md4/hex"
+hashify_response_field: "Digest"
+
+# ── Join keys ─────────────────────────────────────────────
+# Column names used in the claim→contract left join
+claim_contract_join:
+  claim_contract_id_col: "CONTRACT_ID"
+  claim_source_system_col: "CONTRACT_SOURCE_SYSTEM"
+  contract_id_col: "CONTRACT_ID"
+  contract_source_system_col: "SOURCE_SYSTEM"
+
+# ── Output ────────────────────────────────────────────────
+output_file_format: "csv"
+output_header: true
+output_delimiter: ","

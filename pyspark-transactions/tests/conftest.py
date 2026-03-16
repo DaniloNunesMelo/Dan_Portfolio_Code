@@ -1,71 +1,45 @@
-"""Shared pytest fixtures.
-
-The Spark session is created once per test run (``scope="session"``).
-Helper functions let individual tests build small in-memory DataFrames
-without reading files from disk.
-"""
+"""Shared test fixtures."""
 
 from __future__ import annotations
 
-import shutil
-import os
-
 import pytest
-from pyspark.sql import DataFrame, SparkSession
-
-from e3_contracts_to_transactions.schemas import (
-    CLAIM_SCHEMA,
-    CONTRACT_SCHEMA,
-    NSE_LOOKUP_SCHEMA,
-)
+from pyspark.sql import SparkSession
 
 
 @pytest.fixture(scope="session")
 def spark() -> SparkSession:
-    # Pre-flight: give a clear error instead of a JVM crash
-    if not shutil.which("java") and not os.environ.get("JAVA_HOME"):
-        pytest.skip(
-            "Java not found. PySpark 4.0 requires JDK 17 or 21. "
-            "Install and add to PATH or set JAVA_HOME."
-        )
-
+    """Session-scoped local Spark for all tests."""
     session = (
-        SparkSession.builder.appName("transactions_tests")
+        SparkSession.builder
+        .appName("Europe3_Tests")
         .master("local[1]")
-        .config("spark.sql.session.timeZone", "UTC")
-        .config("spark.ui.enabled", "false")
-        .config("spark.ui.showConsoleProgress", "false")
         .config("spark.sql.shuffle.partitions", "1")
-        .config("spark.driver.memory", "1g")
+        .config("spark.ui.enabled", "false")
+        .config("spark.driver.bindAddress", "127.0.0.1")
         .getOrCreate()
     )
     yield session
     session.stop()
 
 
-# ------------------------------------------------------------------
-# Helper factories – every test builds only the rows it needs
-# ------------------------------------------------------------------
-
-
-def make_contracts(spark: SparkSession, rows: list[tuple]) -> DataFrame:
-    """Build a CONTRACT DataFrame from a list of tuples.
-
-    Each tuple: (SOURCE_SYSTEM, CONTRACT_ID, CONTRACT_TYPE,
-                  INSURED_PERIOD_FROM, INSURED_PERIOD_TO, CREATION_DATE)
-    """
-    return spark.createDataFrame(rows, schema=CONTRACT_SCHEMA)
-
-
-def make_claims(spark: SparkSession, rows: list[tuple]) -> DataFrame:
-    """Build a CLAIM DataFrame from a list of tuples.
-
-    Each tuple: (SOURCE_SYSTEM, CLAIM_ID, CONTRACT_SOURCE_SYSTEM,
-                  CONTRACT_ID, CLAIM_TYPE, DATE_OF_LOSS, AMOUNT, CREATION_DATE)
-    """
-    return spark.createDataFrame(rows, schema=CLAIM_SCHEMA)
-
-
-def make_nse_lookup(spark: SparkSession, pairs: list[tuple]) -> DataFrame:
-    """Build an NSE lookup DataFrame from (CLAIM_ID, NSE_ID) pairs."""
-    return spark.createDataFrame(pairs, schema=NSE_LOOKUP_SCHEMA)
+@pytest.fixture()
+def default_config() -> dict:
+    """A minimal config dict matching production defaults."""
+    return {
+        "source_system": "Europe 3",
+        "transaction_type_mapping": {"1": "Private", "2": "Corporate"},
+        "transaction_type_default": "Unknown",
+        "transaction_direction_mapping": {"CL": "COINSURANCE", "RX": "REINSURANCE"},
+        "date_of_loss_format": "dd.MM.yyyy",
+        "creation_date_format": "dd.MM.yyyy HH:mm",
+        "hashify_base_url": "https://api.hashify.net/hash/md4/hex",
+        "hashify_response_field": "Digest",
+        "claim_contract_join": {
+            "claim_contract_id_col": "CONTRACT_ID",
+            "claim_source_system_col": "CONTRACT_SOURCE_SYSTEM",
+            "contract_id_col": "CONTRACT_ID",
+            "contract_source_system_col": "SOURCE_SYSTEM",
+        },
+        "output_header": True,
+        "output_delimiter": ",",
+    }

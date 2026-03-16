@@ -1,58 +1,32 @@
-"""Hashify API client for computing NSE_ID (MD4 hex digest).
-
-The task requires calling:
-    https://api.hashify.net/hash/md4/hex?value=<CLAIM_ID>
-and extracting the JSON field "Digest".
-
-Design:
-    fetch_nse_id() is a plain function with a configurable base URL so that
-    tests can point it at a local stub without monkey-patching.
-"""
+"""Hashify API client (injectable)."""
 
 from __future__ import annotations
 
-import logging
+from typing import Any
 
 import requests
 
-logger = logging.getLogger(__name__)
 
-HASHIFY_URL = "https://api.hashify.net/hash/md4/hex"
+def make_hashify_fn(
+    base_url: str = "https://api.hashify.net/hash/md4/hex",
+    response_field: str = "Digest",
+    timeout: int = 10,
+) -> callable:
+    """Return a ``(claim_id: str) -> str`` function that calls the Hashify API.
 
-
-def fetch_nse_id(
-    claim_id: str,
-    *,
-    base_url: str = HASHIFY_URL,
-    timeout_s: float = 5.0,
-) -> str:
-    """Return the MD4 hex digest for *claim_id* via the Hashify API.
-
-    Parameters
-    ----------
-    claim_id:
-        The CLAIM_ID value to hash.
-    base_url:
-        API endpoint. Override in tests to avoid real HTTP calls.
-    timeout_s:
-        HTTP timeout in seconds.
-
-    Raises
-    ------
-    ValueError
-        If *claim_id* is None or the response has no ``Digest`` field.
-    requests.HTTPError
-        On non-2xx responses.
+    Parameters come from config so the URL and field name are not hardcoded.
     """
-    if claim_id is None:
-        raise ValueError("claim_id must not be None")
 
-    resp = requests.get(base_url, params={"value": claim_id}, timeout=timeout_s)
-    resp.raise_for_status()
+    def _hash(claim_id: str | None) -> str | None:
+        if claim_id is None:
+            return None
+        resp = requests.get(
+            base_url,
+            params={"value": claim_id},
+            timeout=timeout,
+        )
+        resp.raise_for_status()
+        payload: dict[str, Any] = resp.json()
+        return payload[response_field]
 
-    digest = resp.json().get("Digest")
-    if not digest:
-        raise ValueError(f"API response missing 'Digest': {resp.text[:200]}")
-
-    logger.debug("NSE_ID for %s = %s", claim_id, digest)
-    return str(digest)
+    return _hash
