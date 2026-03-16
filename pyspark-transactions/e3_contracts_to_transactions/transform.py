@@ -7,11 +7,14 @@ isolation.
 
 from __future__ import annotations
 
+import logging
 from typing import Any, Callable
 
 from pyspark.sql import DataFrame
 import pyspark.sql.functions as F
 from pyspark.sql.types import DecimalType, StringType
+
+logger = logging.getLogger(__name__)
 
 
 def add_source_system(
@@ -30,6 +33,7 @@ def add_contract_source_system_id(
     """Left-join claims to contracts and carry over CONTRACT_ID.
 
     Uses join key column names from *config["claim_contract_join"]*.
+    Logs the number of matched and unmatched claims.
     """
     join_cfg = config.get("claim_contract_join", {})
     claim_cid = join_cfg.get("claim_contract_id_col", "CONTRACT_ID")
@@ -51,23 +55,34 @@ def add_contract_source_system_id(
         how="left",
     )
 
-    return joined.withColumn(
+    result = joined.withColumn(
         "CONTRACT_SOURCE_SYSTEM_ID",
         F.when(
             F.col("_ctr_id").isNotNull(),
             F.col(claim_cid),
         ).cast("long"),
     ).drop("_ctr_ss", "_ctr_id")
+    
+    # Log join statistics
+    matched = result.filter(F.col("CONTRACT_SOURCE_SYSTEM_ID").isNotNull()).count()
+    unmatched = result.filter(F.col("CONTRACT_SOURCE_SYSTEM_ID").isNull()).count()
+    logger.info(
+        f"Join complete: {matched} matched, {unmatched} unmatched claims"
+    )
+    
+    return result
 
 
 def add_source_system_id(df: DataFrame) -> DataFrame:
     """Extract numeric suffix from CLAIM_ID.
 
     Example: ``CL_68545123`` -> ``68545123``.
+    Returns NULL if CLAIM_ID does not contain underscore and digits.
     """
+    extracted = F.regexp_extract(F.col("CLAIM_ID"), r"_(\d+)$", 1)
     return df.withColumn(
         "SOURCE_SYSTEM_ID",
-        F.regexp_extract(F.col("CLAIM_ID"), r"_(\d+)$", 1).cast("int"),
+        F.when(extracted == "", F.lit(None)).otherwise(extracted.cast("int")),
     )
 
 
@@ -169,8 +184,14 @@ def build_transactions(
     config: dict[str, Any],
     hash_fn: Callable[[str | None], str | None],
 ) -> DataFrame:
-    """Apply every transform step and select final columns."""
+    """Apply every transform step and select final columns.
+    
+    Logs the number of input and output rows for observability.
+    """
     from .schemas import TRANSACTIONS_SCHEMA
+
+    initial_count = claims_df.count()
+    logger.info(f"Starting transformation with {initial_count} input claims")
 
     df = add_contract_source_system_id(claims_df, contracts_df, config)
     df = add_source_system(df, config["source_system"])
@@ -182,6 +203,15 @@ def build_transactions(
     df = add_creation_date(df, config["creation_date_format"])
     df = add_system_timestamp(df)
     df = add_nse_id(df, hash_fn)
+    logger.debug("All transformations complete")
 
     target_cols = [f.name for f in TRANSACTIONS_SCHEMA.fields]
-    return df.select(*target_cols)
+    result = df.select(*target_cols)
+    
+    final_count = result.count()
+    logger.info(
+        f"Transformation complete: {initial_count} input → {final_count} output "
+        f"(reduction: {initial_count - final_count})"
+    )
+    
+    return result

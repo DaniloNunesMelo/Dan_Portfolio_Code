@@ -93,7 +93,14 @@ def write_csv(
     # Find the single part-* file and move it
     part_files = list(tmp_dir.glob("part-*"))
     if not part_files:
-        raise RuntimeError(f"No part files found in {tmp_dir}")
+        import os
+        contents = os.listdir(tmp_dir) if tmp_dir.exists() else "DIRECTORY_NOT_FOUND"
+        raise RuntimeError(
+            f"No part files found in {tmp_dir}. This indicates a Spark write failure. "
+            f"Directory contents: {contents}. Possible causes: DataFrame is empty, "
+            f"insufficient disk space, or invalid Spark config. "
+            f"Verify input data is not empty and check available disk space."
+        )
 
     part_files[0].rename(out)
 
