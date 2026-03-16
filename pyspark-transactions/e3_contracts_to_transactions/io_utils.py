@@ -43,7 +43,9 @@ def read_csv(
         If *path* does not exist on the local filesystem.
     """
     if not Path(path).exists():
-        raise FileNotFoundError(f"Input file not found: {path}")
+        raise FileNotFoundError(
+            f"Input file not found: {path}"
+        )
 
     logger.info("Reading CSV: %s", path)
     return (
@@ -81,7 +83,9 @@ def write_csv(
     out = Path(path)
     tmp_dir = out.parent / f".tmp_{out.stem}"
 
-    logger.info("Writing CSV: %s (via temp dir %s)", path, tmp_dir)
+    logger.info(
+        "Writing CSV: %s (via temp dir %s)", path, tmp_dir
+    )
     (
         df.coalesce(1)
         .write.option("header", header)
@@ -93,7 +97,9 @@ def write_csv(
     # Find the single part-* file and move it
     part_files = list(tmp_dir.glob("part-*"))
     if not part_files:
-        raise RuntimeError(f"No part files found in {tmp_dir}")
+        raise RuntimeError(
+            f"No part files found in {tmp_dir}"
+        )
 
     part_files[0].rename(out)
 
