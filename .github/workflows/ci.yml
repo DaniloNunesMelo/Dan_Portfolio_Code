@@ -71,10 +71,12 @@ jobs:
             2>&1 | tee ci-reports/pytest.log
 
       - name: Coverage comment
+        if: matrix.python-version == '3.12'
         uses: py-cov-action/python-coverage-comment-action@v3.40
         with:
           GITHUB_TOKEN: ${{ github.token }}
           COVERAGE_PATH: pyspark-transactions
+          COVERAGE_DATA_FILE: pyspark-transactions/.coverage
 
       - name: Upload CI reports as artifact
         uses: actions/upload-artifact@v7.0.0
