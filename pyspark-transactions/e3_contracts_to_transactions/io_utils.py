@@ -10,7 +10,6 @@ from pyspark.sql import DataFrame, SparkSession
 
 logger = logging.getLogger(__name__)
 
-
 def read_csv(
     spark: SparkSession,
     path: str,
