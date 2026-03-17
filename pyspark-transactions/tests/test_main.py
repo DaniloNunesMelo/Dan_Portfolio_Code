@@ -319,6 +319,7 @@ class TestMain:
 
 def test_main_guard():
     with pytest.MonkeyPatch.context() as mp:
-        # Optionally patch sys.argv or environment variables
-        mp.setattr("sys.argv", ["main.py", "--help"])  # or any safe arguments
-        runpy.run_module("e3_contracts_to_transactions.main", run_name="__main__")
+        mp.setattr("sys.argv", ["main.py", "--help"])
+        with pytest.raises(SystemExit) as exc_info:
+            runpy.run_module("e3_contracts_to_transactions.main", run_name="__main__")
+        assert exc_info.value.code == 0
