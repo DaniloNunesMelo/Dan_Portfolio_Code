@@ -318,8 +318,11 @@ class TestMain:
 
 
 def test_main_guard():
+    import sys
+
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr("sys.argv", ["main.py", "--help"])
+        mp.delitem(sys.modules, "e3_contracts_to_transactions.main", raising=False)
         with pytest.raises(SystemExit) as exc_info:
             runpy.run_module("e3_contracts_to_transactions.main", run_name="__main__")
         assert exc_info.value.code == 0
