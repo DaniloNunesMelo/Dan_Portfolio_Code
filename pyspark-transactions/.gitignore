@@ -17,6 +17,10 @@ venv/
 derby.log
 metastore_db/
 spark-warehouse/
+
+# CI reports — managed by CI workflow
+!ci-reports/
+!ci-reports/*.log
  
 # Output — raw pipeline artefact (never commit)
 output/TRANSACTIONS.csv
