@@ -102,7 +102,15 @@ Edit `parameters.yaml` — no code change, no redeployment of logic:
 transaction_type_mapping:
   "1": "Private"
   "2": "Corporate"
-  "3": "Government"    # ← new entry
+  "3": "SME"
+  "4": "Government"
+  "5": "NonProfit"
+  "6": "GroupPolicy"
+  "7": "BrokerSubmitted"
+  "8": "PartnerNetwork"
+  "9": "Reinsurance"
+  "10": "Internal"
+
 ```
 
 ### Overriding the config path
