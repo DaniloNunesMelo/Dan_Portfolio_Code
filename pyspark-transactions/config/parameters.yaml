@@ -12,6 +12,14 @@ source_system: "Europe 3"
 transaction_type_mapping:
   "1": "Private"
   "2": "Corporate"
+  "3": "SME"
+  "4": "Government"
+  "5": "NonProfit"
+  "6": "GroupPolicy"
+  "7": "BrokerSubmitted"
+  "8": "PartnerNetwork"
+  "9": "Reinsurance"
+  "10": "Internal"
 
 # Fallback when CLAIM_TYPE is null or not found in the mapping above
 transaction_type_default: "Unknown"
@@ -21,6 +29,9 @@ transaction_type_default: "Unknown"
 transaction_direction_mapping:
   "CL": "COINSURANCE"
   "RX": "REINSURANCE"
+  "RI": "INWARD_REINSURANCE"
+  "DI": "DIRECT"
+  "RC": "RECOVERY"
 
 # ── Date formats (input) ──────────────────────────────────
 date_of_loss_format: "dd.MM.yyyy"
