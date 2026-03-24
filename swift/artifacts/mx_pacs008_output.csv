@@ -1,0 +1,2 @@
+msg_id,created_at,settlement_date,currency,amount,tx_id,end_to_end_id,uetr,charge_bearer,debtor_name,debtor_iban,debtor_bic,creditor_bic,creditor_name,creditor_iban,remittance_info,purpose_code
+MSG-20250101-ABC123,2025-01-01T10:00:00,2025-01-01,EUR,1234.56,20250101-ABC123,E2E-20250101-ABC123,550e8400-e29b-41d4-a716-446655440000,SHAR,John Doe,DE44500105175407324931,BANKDEFFXXX,BANKUS33XXX,Jane Smith,US12300078901234567890,INVOICE 2024-0001 / CONSULTING SERVICES,COSU
