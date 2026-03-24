@@ -1,0 +1,5 @@
+# Keep this folder in git, ignore generated CSV/JSON files inside it.
+# CI/CD commits sample outputs explicitly via `git add -f`.
+*
+!.gitignore
+!.gitkeep

@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  mx_pacs008_example.xml
+  ======================
+  Example ISO 20022 pacs.008.001.08 message.
+
+  pacs.008 = "Financial Institution to Financial Institution Customer Credit Transfer"
+             This is the MX (XML-based) equivalent of the legacy MT103 message.
+
+  WHY ISO 20022 / MX?
+  ===================
+  ISO 20022 is the new global standard for financial messaging, replacing SWIFT's
+  legacy "MT" format.  Key advantages over MT:
+    • Structured XML  – machine-readable, no free-text ambiguity
+    • Rich data       – full legal entity names, LEI codes, UETR tracking IDs
+    • Interoperable   – one standard for SWIFT, SEPA, TARGET2, FedNow, etc.
+
+  MT103 → pacs.008 FIELD MAPPING
+  ================================
+  MT103 tag   | pacs.008 XML path                              | Notes
+  =====================+================================================+======================
+  :20:        | CdtTrfTxInf/PmtId/TxId                         | Transaction ref
+  (no equiv.) | CdtTrfTxInf/PmtId/UETR                         | NEW: unique tracker
+  :32A: date  | GrpHdr/IntrBkSttlmDt                           | Settlement date
+  :32A: amount| CdtTrfTxInf/IntrBkSttlmAmt @Ccy               | Amount + currency
+  :33B:       | CdtTrfTxInf/InstdAmt @Ccy                      | Original amount
+  :36:        | CdtTrfTxInf/XchgRate                           | Exchange rate
+  :50K:       | CdtTrfTxInf/Dbtr + DbtrAcct                    | Debtor (sender)
+  :53B:       | CdtTrfTxInf/DbtrAgt/FinInstnId/BICFI           | Debtor's bank
+  :57A:       | CdtTrfTxInf/CdtrAgt/FinInstnId/BICFI           | Creditor's bank
+  :59:        | CdtTrfTxInf/Cdtr + CdtrAcct                    | Creditor (receiver)
+  :70:        | CdtTrfTxInf/RmtInf/Ustrd                       | Remittance info
+  :71A:       | CdtTrfTxInf/ChrgBr (SHAR/DEBT/CRED)            | Charge bearer
+  :77B:       | CdtTrfTxInf/Purp/Cd                            | Purpose code
+
+  This example mirrors the first MT103 in mt103_transactions.fin:
+    Germany → USA, EUR 1234.56, John Doe → Jane Smith, consulting invoice.
+-->
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pacs.008.001.08">
+  <FIToFICstmrCdtTrf>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         GROUP HEADER  –  applies to all transactions in this message
+         (MT103 equivalent: Block 1, Block 2 + some Block 4 fields)
+         ═══════════════════════════════════════════════════════════════════ -->
+    <GrpHdr>
+      <!-- Unique message identifier (assigned by the sending institution) -->
+      <MsgId>MSG-20250101-ABC123</MsgId>
+
+      <!-- ISO 8601 timestamp of message creation -->
+      <CreDtTm>2025-01-01T10:00:00</CreDtTm>
+
+      <!-- Number of credit transfer transactions in this message -->
+      <NbOfTxs>1</NbOfTxs>
+
+      <!-- Total interbank settlement amount (sum of all CdtTrfTxInf amounts) -->
+      <TtlIntrBkSttlmAmt Ccy="EUR">1234.56</TtlIntrBkSttlmAmt>
+
+      <!-- Interbank settlement date  ← MT103 :32A: date part -->
+      <IntrBkSttlmDt>2025-01-01</IntrBkSttlmDt>
+
+      <!-- Settlement method: CLRG = Clearing System -->
+      <SttlmInf>
+        <SttlmMtd>CLRG</SttlmMtd>
+      </SttlmInf>
+
+      <!-- Sending financial institution  ← MT103 Block 1 BIC -->
+      <InstgAgt>
+        <FinInstnId>
+          <BICFI>BANKDEFFXXX</BICFI>
+        </FinInstnId>
+      </InstgAgt>
+
+      <!-- Receiving financial institution  ← MT103 Block 2 BIC -->
+      <InstdAgt>
+        <FinInstnId>
+          <BICFI>BANKUS33XXX</BICFI>
+        </FinInstnId>
+      </InstdAgt>
+    </GrpHdr>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         CREDIT TRANSFER TRANSACTION INFORMATION
+         (MT103 equivalent: Block 4 – all the payment fields)
+         ═══════════════════════════════════════════════════════════════════ -->
+    <CdtTrfTxInf>
+
+      <!-- Payment Identification  ← MT103 :20: and NEW UETR field -->
+      <PmtId>
+        <InstrId>INSTR-20250101-001</InstrId>
+        <!-- End-to-end reference  ← roughly MT103 :20: -->
+        <EndToEndId>E2E-20250101-ABC123</EndToEndId>
+        <!-- Transaction ID  ← MT103 :20: -->
+        <TxId>20250101-ABC123</TxId>
+        <!-- UETR: Unique End-to-end Transaction Reference (UUID v4)
+             NEW in ISO 20022 – not present in MT103 at all.
+             Enables end-to-end tracking across all correspondent banks. -->
+        <UETR>550e8400-e29b-41d4-a716-446655440000</UETR>
+      </PmtId>
+
+      <!-- Interbank settlement amount + currency  ← MT103 :32A: amount/ccy -->
+      <IntrBkSttlmAmt Ccy="EUR">1234.56</IntrBkSttlmAmt>
+
+      <!-- Charge bearer  ← MT103 :71A:
+           SHAR = SHA (each party pays own charges)
+           DEBT = OUR (sender pays all)
+           CRED = BEN (receiver pays all)  -->
+      <ChrgBr>SHAR</ChrgBr>
+
+      <!-- Debtor's bank (BIC)  ← MT103 :53B: Sender's Correspondent -->
+      <DbtrAgt>
+        <FinInstnId>
+          <BICFI>BANKDEFFXXX</BICFI>
+        </FinInstnId>
+      </DbtrAgt>
+
+      <!-- Debtor (the payment sender / ordering customer)  ← MT103 :50K: -->
+      <Dbtr>
+        <Nm>John Doe</Nm>
+        <PstlAdr>
+          <StrtNm>Main Street 1</StrtNm>
+          <PstCd>10115</PstCd>
+          <TwnNm>Berlin</TwnNm>
+          <Ctry>DE</Ctry>
+        </PstlAdr>
+      </Dbtr>
+
+      <!-- Debtor's account (IBAN)  ← part of MT103 :50K: -->
+      <DbtrAcct>
+        <Id>
+          <IBAN>DE44500105175407324931</IBAN>
+        </Id>
+      </DbtrAcct>
+
+      <!-- Creditor's bank (BIC)  ← MT103 :57A: Account With Institution -->
+      <CdtrAgt>
+        <FinInstnId>
+          <BICFI>BANKUS33XXX</BICFI>
+        </FinInstnId>
+      </CdtrAgt>
+
+      <!-- Creditor (the payment receiver / beneficiary)  ← MT103 :59: -->
+      <Cdtr>
+        <Nm>Jane Smith</Nm>
+        <PstlAdr>
+          <StrtNm>123 5th Avenue</StrtNm>
+          <PstCd>10001</PstCd>
+          <TwnNm>New York</TwnNm>
+          <Ctry>US</Ctry>
+        </PstlAdr>
+      </Cdtr>
+
+      <!-- Creditor's account  ← part of MT103 :59: -->
+      <CdtrAcct>
+        <Id>
+          <!-- Note: US accounts use BBAN here; IBAN is EU/UK standard -->
+          <Othr>
+            <Id>US12300078901234567890</Id>
+          </Othr>
+        </Id>
+      </CdtrAcct>
+
+      <!-- Purpose code  ← MT103 :77B: Regulatory Reporting
+           COSU = Consulting / advisory services -->
+      <Purp>
+        <Cd>COSU</Cd>
+      </Purp>
+
+      <!-- Remittance information  ← MT103 :70: -->
+      <RmtInf>
+        <Ustrd>INVOICE 2024-0001 / CONSULTING SERVICES</Ustrd>
+      </RmtInf>
+
+    </CdtTrfTxInf>
+
+  </FIToFICstmrCdtTrf>
+</Document>
