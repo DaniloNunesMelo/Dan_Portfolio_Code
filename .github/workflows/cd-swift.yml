@@ -1,0 +1,88 @@
+name: CD - SWIFT Parser Pipeline
+
+# Runs the full parsing pipeline (MT103 + MX pacs.008) and commits sample output.
+# Triggers on push to master when swift/ files change, or manually via workflow_dispatch.
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'swift/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write   # needed to commit sample output back to the repo
+
+jobs:
+  run-pipeline:
+    name: Run SWIFT parsing pipeline
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Checkout ────────────────────────────────────────────────────
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history required for the commit push
+
+      # ── 2. Python setup ────────────────────────────────────────────────
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: swift/requirements.txt
+
+      # ── 3. Install dependencies ────────────────────────────────────────
+      - name: Install dependencies
+        working-directory: ./swift
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # ── 4. Run MT103 parser ────────────────────────────────────────────
+      # Reads mt103_transactions.fin → writes mt103_wide_batch.csv
+      - name: Run MT103 parser
+        working-directory: ./swift
+        run: |
+          python mt103.py input/mt103_transactions.fin
+          echo "MT103 CSV contents (first 5 lines):"
+          head -5 output/mt103_wide_batch.csv
+
+      # ── 5. Run MX pacs.008 parser ──────────────────────────────────────
+      # Reads input/mx_pacs008_example.xml → writes output/mx_pacs008_output.csv
+      - name: Run MX pacs.008 parser
+        working-directory: ./swift
+        run: |
+          python mx_pacs008.py input/mx_pacs008_example.xml
+          echo "MX CSV contents:"
+          cat output/mx_pacs008_output.csv
+
+      # ── 6. Run full didactic workflow (main.py) ─────────────────────────
+      - name: Run full workflow (main.py)
+        working-directory: ./swift
+        run: python main.py
+
+      # ── 7. Upload CSV outputs as artifacts ─────────────────────────────
+      # ── 8. Copy outputs to artifacts/ folder ───────────────────────────
+      - name: Copy outputs to artifacts/
+        run: |
+          cp swift/output/mt103_wide_batch.csv  swift/artifacts/mt103_wide_batch.csv
+          cp swift/output/mx_pacs008_output.csv swift/artifacts/mx_pacs008_output.csv
+
+      # ── 9. Upload parsed output as GitHub Action artifacts ──────────────
+      - name: Upload parsed output artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: swift-parsed-output
+          path: swift/artifacts/
+
+      # ── 10. Commit sample outputs back to repo ─────────────────────────
+      # Keeps a versioned copy of the parsed output in the repository so
+      # reviewers can see what the parser produces without running it locally.
+      - name: Commit sample outputs
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f swift/artifacts/mt103_wide_batch.csv swift/artifacts/mx_pacs008_output.csv
+          git diff --cached --quiet || git commit -m "chore(swift): update sample parsed output [skip ci]"
+          git push
