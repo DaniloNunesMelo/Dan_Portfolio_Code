@@ -1,0 +1,7 @@
+[run]
+omit =
+    src/ui/layout.py
+
+[report]
+omit =
+    src/ui/layout.py

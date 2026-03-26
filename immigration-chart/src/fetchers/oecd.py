@@ -18,6 +18,7 @@ VAR_TO_METRIC = {
     "B14": "Stock of Foreign-Born Population",
     "B15": "Stock of Foreign Nationals",
     "B16": "Citizenship Acquisition",
+    "B21": "Outflows of National Population",
 }
 
 SEX_TO_GENDER = {"_T": "Total", "T": "Total", "M": "Male", "F": "Female"}

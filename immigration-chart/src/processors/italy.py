@@ -24,7 +24,7 @@ def load_italy(
     Returns: (merged_df, [source_labels_used])
     """
     if var_codes is None:
-        var_codes = ["B11", "B12", "B16"]
+        var_codes = ["B11", "B12", "B16", "B21"]
 
     frames: list[pd.DataFrame] = []
     sources_used: list[str] = []

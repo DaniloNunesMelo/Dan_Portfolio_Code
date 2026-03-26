@@ -1,5 +1,7 @@
 """
 Fallback reader: loads legacy CSV/XLSX files from data/raw/.
+Files must follow the naming pattern {src}_{country}.{ext}
+  e.g. oecd_italy.csv, un_canada.xlsx
 Returns canonical-schema DataFrames.
 """
 from datetime import datetime, timezone
@@ -16,11 +18,12 @@ VAR_TO_METRIC = {
     "B14": "Stock of Foreign-Born Population",
     "B15": "Stock of Foreign Nationals",
     "B16": "Citizenship Acquisition",
+    "B21": "Outflows of National Population",
 }
 
 GEN_TO_GENDER = {"TOT": "Total", "MAS": "Male", "FEM": "Female", "T": "Total", "M": "Male", "F": "Female"}
 
-# Partial country-name → ISO 3166-1 alpha-3 lookup for Canada.xlsx
+# Partial country-name → ISO 3166-1 alpha-3 lookup for un_canada.xlsx
 COUNTRY_TO_ISO3 = {
     "Afghanistan": "AFG", "Albania": "ALB", "Algeria": "DZA",
     "Argentina": "ARG", "Australia": "AUS", "Austria": "AUT",
@@ -58,17 +61,55 @@ AREA_MAP = {
     "Oceania": "Oceania", "Unknown": None,
 }
 
+_SUPPORTED_EXTENSIONS = {".csv", ".xlsx"}
 
-def load_italy_csv() -> pd.DataFrame:
-    """
-    Reads MIG_ITALY_NO_QUOTE.csv → canonical schema.
-    Columns: CO2, Country_Nationality, VAR, Variable, GEN, Gender, COU, Country, YEA, Year, Value
-    """
-    csv_path = DATA_RAW / "MIG_ITALY_NO_QUOTE.csv"
-    if not csv_path.exists():
-        raise FileNotFoundError(f"Italy fallback CSV not found: {csv_path}")
 
-    df = pd.read_csv(csv_path, header=None, names=[
+def discover_files(src: str | None = None, country: str | None = None) -> list[Path]:
+    """
+    Return paths in DATA_RAW matching the pattern {src}_{country}.{ext}.
+    Pass None for src or country to wildcard that part.
+    """
+    src_part = src if src else "*"
+    country_part = country if country else "*"
+    pattern = f"{src_part}_{country_part}.*"
+    return sorted(DATA_RAW.glob(pattern))
+
+
+def load_fallback(src: str, country: str) -> pd.DataFrame:
+    """
+    Discover and load the fallback file for the given source+country pair.
+    Dispatches based on file extension (.csv or .xlsx).
+    Raises FileNotFoundError if no matching file is found.
+    Raises ValueError if the file extension is not supported.
+    """
+    matches = discover_files(src, country)
+    if not matches:
+        raise FileNotFoundError(
+            f"No fallback file found for src='{src}' country='{country}' in {DATA_RAW}. "
+            f"Expected a file matching '{src}_{country}.*'"
+        )
+    path = matches[0]
+    ext = path.suffix.lower()
+    if ext == ".csv":
+        return _load_oecd_csv(path)
+    elif ext == ".xlsx":
+        return _load_un_xlsx(path)
+    else:
+        raise ValueError(
+            f"Unsupported file extension '{ext}' for {path.name}. "
+            f"Supported extensions: {', '.join(_SUPPORTED_EXTENSIONS)}"
+        )
+
+
+def _load_oecd_csv(path: Path) -> pd.DataFrame:
+    """
+    Parse an OECD-format CSV → canonical schema.
+    Expected columns: CO2, Country_Nationality, VAR, Variable, GEN, Gender, COU, Country, YEA, Year, Value
+    """
+    if not path.exists():
+        raise FileNotFoundError(f"Italy fallback CSV not found: {path}")
+
+    df = pd.read_csv(path, header=None, names=[
         "CO2", "Country_Nationality", "VAR", "Variable",
         "GEN", "Gender", "COU", "Country", "YEA", "Year", "Value"
     ])
@@ -105,28 +146,26 @@ def load_italy_csv() -> pd.DataFrame:
     return result
 
 
-def load_canada_xlsx() -> pd.DataFrame:
+def _load_un_xlsx(path: Path) -> pd.DataFrame:
     """
-    Reads Canada.xlsx (two sheets) → canonical schema.
+    Parse a UN-format XLSX (two sheets) → canonical schema.
     Sheet 'Canada by Citizenship': wide format with year columns 1980-2013.
     Sheet 'Regions by Citizenship': wide format with year columns 1980-2013.
     """
-    xlsx_path = DATA_RAW / "Canada.xlsx"
-    if not xlsx_path.exists():
-        raise FileNotFoundError(f"Canada fallback XLSX not found: {xlsx_path}")
+    if not path.exists():
+        raise FileNotFoundError(f"Canada fallback XLSX not found: {path}")
 
     fetch_ts = datetime.now(timezone.utc)
     frames = []
 
     # --- Sheet 1: Canada by Citizenship ---
     try:
-        df_cit = pd.read_excel(xlsx_path, sheet_name="Canada by Citizenship",
+        df_cit = pd.read_excel(path, sheet_name="Canada by Citizenship",
                                skiprows=1, engine="openpyxl")
         id_cols = ["Type", "Coverage", "OdName", "AREA", "AreaName", "REG", "RegName", "DEV", "DevName"]
         id_cols_present = [c for c in id_cols if c in df_cit.columns]
         year_cols = [c for c in df_cit.columns if isinstance(c, int) and 1900 <= c <= 2030]
         if not year_cols:
-            # Try string year columns
             year_cols = [c for c in df_cit.columns if str(c).isdigit() and 1900 <= int(c) <= 2030]
 
         df_melt = pd.melt(df_cit, id_vars=id_cols_present, value_vars=year_cols,
@@ -168,7 +207,7 @@ def load_canada_xlsx() -> pd.DataFrame:
 
     # --- Sheet 2: Regions by Citizenship ---
     try:
-        df_reg = pd.read_excel(xlsx_path, sheet_name="Regions by Citizenship",
+        df_reg = pd.read_excel(path, sheet_name="Regions by Citizenship",
                                skiprows=20, engine="openpyxl")
         id_cols_r = ["Type", "Coverage", "AreaName", "RegName"]
         id_cols_r_present = [c for c in id_cols_r if c in df_reg.columns]
@@ -216,6 +255,20 @@ def load_canada_xlsx() -> pd.DataFrame:
         print(f"[fallback] Warning: Could not load Regions by Citizenship sheet: {e}")
 
     if not frames:
-        raise RuntimeError("Both Canada.xlsx sheets failed to load")
+        raise RuntimeError("Both Canada XLSX sheets failed to load")
 
     return pd.concat(frames, ignore_index=True)
+
+
+# ---------------------------------------------------------------------------
+# Backward-compatible public wrappers (processors import these by name)
+# ---------------------------------------------------------------------------
+
+def load_italy_csv() -> pd.DataFrame:
+    """Load Italy fallback data from data/raw/oecd_italy.csv."""
+    return load_fallback("oecd", "italy")
+
+
+def load_canada_xlsx() -> pd.DataFrame:
+    """Load Canada fallback data from data/raw/un_canada.xlsx."""
+    return load_fallback("un", "canada")

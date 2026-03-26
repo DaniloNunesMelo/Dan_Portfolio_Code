@@ -26,7 +26,7 @@ def load_canada(
     Returns: (merged_df, [source_labels_used])
     """
     if var_codes is None:
-        var_codes = ["B11", "PR"]
+        var_codes = ["B11", "B21", "PR"]
 
     frames: list[pd.DataFrame] = []
     sources_used: list[str] = []
