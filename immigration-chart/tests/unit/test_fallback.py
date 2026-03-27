@@ -85,32 +85,32 @@ def test_load_italy_csv_ref_area(italy_csv_tmp):
     assert (df["ref_area"] == "ITA").all()
 
 
-# ── load_canada_xlsx ──────────────────────────────────────────────────────────
+# ── load_canada_csv ──────────────────────────────────────────────────────────
 
-def test_load_canada_xlsx_schema(canada_xlsx_tmp):
+def test_load_canada_csv_schema(canada_csv_tmp):
     df = load_canada_xlsx()
     for col in CANONICAL_COLUMNS:
         assert col in df.columns, f"Missing column: {col}"
 
 
-def test_load_canada_xlsx_source_tag(canada_xlsx_tmp):
+def test_load_canada_csv_source_tag(canada_csv_tmp):
     df = load_canada_xlsx()
-    assert (df["source_dataset"] == "FALLBACK_XLSX").all()
+    assert (df["source_dataset"] == "FALLBACK_CSV").all()
 
 
-def test_load_canada_xlsx_year_range(canada_xlsx_tmp):
+def test_load_canada_csv_year_range(canada_csv_tmp):
     df = load_canada_xlsx()
     years = df["year"].dropna().astype(int)
     assert (years >= 1900).all()
     assert (years <= 2100).all()
 
 
-def test_load_canada_xlsx_positive_values(canada_xlsx_tmp):
+def test_load_canada_csv_positive_values(canada_csv_tmp):
     df = load_canada_xlsx()
     assert (df["obs_value"] > 0).all()
 
 
-def test_load_canada_xlsx_ref_area(canada_xlsx_tmp):
+def test_load_canada_csv_ref_area(canada_csv_tmp):
     df = load_canada_xlsx()
     assert (df["ref_area"] == "CAN").all()
 

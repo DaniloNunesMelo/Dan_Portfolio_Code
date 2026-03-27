@@ -40,7 +40,7 @@ def canonical_df() -> pd.DataFrame:
         "imm_category": [None, None, None],
         "obs_value": [1000.0, 1200.0, 5000.0],
         "obs_status": [None, None, None],
-        "source_dataset": ["OECD_MIG", "OECD_MIG", "FALLBACK_XLSX"],
+        "source_dataset": ["OECD_MIG", "OECD_MIG", "FALLBACK_CSV"],
         "fetch_ts": [ts, ts, ts],
     })
 
@@ -65,36 +65,25 @@ def italy_csv_tmp(tmp_path: Path, monkeypatch):
 
 
 @pytest.fixture
-def canada_xlsx_tmp(tmp_path: Path, monkeypatch):
+def canada_csv_tmp(tmp_path: Path, monkeypatch):
     """
-    Write a minimal un_canada.xlsx to tmp_path and monkeypatch DATA_RAW.
-    Returns the path to the XLSX.
+    Write a minimal un_canada.csv to tmp_path and monkeypatch DATA_RAW.
+    The CSV is in pre-melted canonical format (18 columns, no fetch_ts).
+    Returns the path to the CSV.
     """
-    wb = openpyxl.Workbook()
-
-    # Sheet 1: Canada by Citizenship
-    ws1 = wb.active
-    ws1.title = "Canada by Citizenship"
-    # Header row (skiprows=1 means row 2 is the column header)
-    ws1.append(["(ignored title row)"])
-    ws1.append(["Type", "Coverage", "OdName", "AREA", "AreaName", "REG", "RegName", "DEV", "DevName", 1990, 2000])
-    ws1.append(["Immigrants", "Country", "India", 5, "Asia", 922, "Southern Asia", 2, "Developing", 2000, 5000])
-    ws1.append(["Immigrants", "Country", "Germany", 5, "Europe", 150, "Western Europe", 1, "Developed", 800, 1500])
-
-    # Sheet 2: Regions by Citizenship
-    ws2 = wb.create_sheet("Regions by Citizenship")
-    # skiprows=20 means we need at least 21 rows; rows 0-19 are skipped
-    for _ in range(20):
-        ws2.append(["(skip)"])
-    ws2.append(["Type", "Coverage", "AreaName", "RegName", 1990, 2000])
-    ws2.append(["Immigrants", "Region", "Asia", "Southern Asia", 5000, 12000])
-
-    xlsx_path = tmp_path / "un_canada.xlsx"
-    wb.save(xlsx_path)
+    rows = [
+        "ref_area,ref_area_name,counterpart,counterpart_name,time_period,year,quarter,"
+        "var_code,metric,sex,gender,area_name,reg_name,province,imm_category,"
+        "obs_value,obs_status,source_dataset\n",
+        "CAN,Canada,IND,India,1990,1990,,B11,Inflows of Foreign Population,T,Total,Asia,Southern Asia,,,2000,,FALLBACK_CSV\n",
+        "CAN,Canada,DEU,Germany,2000,2000,,B11,Inflows of Foreign Population,T,Total,Europe,Western Europe,,,5000,,FALLBACK_CSV\n",
+    ]
+    csv_path = tmp_path / "un_canada.csv"
+    csv_path.write_text("".join(rows))
 
     import src.fetchers.fallback as fb
     monkeypatch.setattr(fb, "DATA_RAW", tmp_path)
-    return xlsx_path
+    return csv_path
 
 
 @pytest.fixture
