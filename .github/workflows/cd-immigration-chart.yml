@@ -37,7 +37,7 @@ jobs:
       - name: Deploy to Hugging Face Spaces
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          HF_USERNAME: ${{ secrets.HF_USERNAME }}
+          HF_USERNAME: ${{ secrets.HF_GITHUB }}
         run: |
           python - <<'EOF'
           import os
