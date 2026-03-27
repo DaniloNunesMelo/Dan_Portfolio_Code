@@ -36,8 +36,7 @@ jobs:
 
       - name: Deploy to Hugging Face Spaces
         env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          HF_USERNAME: ${{ secrets.HF_GITHUB }}
+          HF_TOKEN: ${{ secrets.HF_GITHUB }}
         run: |
           python - <<'EOF'
           import os
@@ -45,7 +44,7 @@ jobs:
           api = HfApi()
           api.upload_folder(
               folder_path="immigration-chart",
-              repo_id=f"{os.environ['HF_USERNAME']}/immigration-chart",
+              repo_id="DaniloNMELO/immigration-chart",
               repo_type="space",
               token=os.environ["HF_TOKEN"],
               ignore_patterns=["__pycache__", "*.pyc", ".pytest_cache", "tests/", "ci-reports/"],
