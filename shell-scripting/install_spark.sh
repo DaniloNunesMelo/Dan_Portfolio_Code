@@ -1,127 +1,113 @@
 #!/bin/bash
-# Danilo Nunes Melo
-# Creation date 01/08/2021
-# Update date 02/22/2021
+# Author: Danilo Nunes Melo
+# Creation date: 2021-08-01
+# Last updated:  2021-02-22
 # Spark Installation Automated
-# Version 1.0
+# Version: 2.0
 
-# TODO Verify java version
+set -euo pipefail
 
-if [[ ${EUID} -eq 0 ]]
-     then
-       echo "=== You have root access ==="
-     else
-       echo "=== Root permission required to install ==="
-       exit
+# ---------------------------------------------------------------------------
+# Prerequisites
+# ---------------------------------------------------------------------------
+
+if [[ "${EUID}" -ne 0 ]]; then
+  echo "=== Root permission required to install ==="
+  exit 1
 fi
 
-if [[ $# -gt 1 ]]
-     then
-       echo "=== Just one argument allowed: Spark Version ==="
-       exit
-     else
-      spk_vrn=$1
+if ! command -v java &> /dev/null; then
+  echo "=== Java is required but not installed. Install Java 8+ first. ==="
+  exit 1
 fi
 
-
-url_spark='https://downloads.apache.org/spark/spark-3.0.1/'
-spark_version=$(curl --silent ${url_spark} | grep gz | awk -F '"' '{ print $6 }' | grep gz$) 1>/dev/null 2>&1
-
-# TODO *Verify previous Spark Installation
-
-# Check if the spark version was passed as argument, if not choose the version
-if [[ -z ${spk_vrn} ]]
-     then
-        # Set PS3 prompt
-        PS3="Enter the Spark Version to install : "
-    
-        # set shuttle list
-        select spk_vrn in ${spark_version}
-        do
-            echo "${spk_vrn} selected"
-        break;
-    
-        done
-    else
-      continue
+if [[ $# -gt 1 ]]; then
+  echo "=== Usage: $0 [spark-version.tgz] ==="
+  echo "  Example: $0 spark-3.5.1-bin-hadoop3.tgz"
+  echo "  Leave blank to choose interactively."
+  exit 1
 fi
 
-echo "=== Downloading the package ${spk_vrn} ==="
+spk_vrn="${1:-}"
 
-wget ${url_spark}${spk_vrn} -P /tmp
+# ---------------------------------------------------------------------------
+# Version discovery
+# ---------------------------------------------------------------------------
 
-if [[ $? -eq 0 ]]
-     then
-       echo "=== Spark Downloaded successfully ==="
-     else
-       echo "=== Download not completed ==="
-       exit
+url_spark='https://downloads.apache.org/spark/'
+spark_versions=$(curl --silent "${url_spark}" \
+  | grep -oP 'href="spark-[^"]+\.tgz"' \
+  | grep -oP 'spark-[^"]+\.tgz') || true
+
+if [[ -z "${spk_vrn}" ]]; then
+  PS3="Enter the Spark version to install: "
+  select spk_vrn in ${spark_versions}; do
+    if [[ -n "${spk_vrn}" ]]; then
+      echo "${spk_vrn} selected"
+      break
+    fi
+  done
 fi
 
-## sha512sum
+echo "=== Downloading ${spk_vrn} ==="
 
-wget ${url_spark}${spk_vrn}'.sha512' -P /tmp
+# ---------------------------------------------------------------------------
+# Download
+# ---------------------------------------------------------------------------
 
-echo "=== sha512sum ==="
-cat ${spk_vrn}'.sha512' | tr '\n' ' '| tr -d ' ' | awk -F ':' '{ print $2 "\t" $1 }'| sha512sum -c -
+wget "${url_spark}${spk_vrn}" -P /tmp
+echo "=== Download complete ==="
 
+wget "${url_spark}${spk_vrn}.sha512" -P /tmp
+echo "=== sha512sum verification ==="
+(cd /tmp && sha512sum --check "${spk_vrn}.sha512")
 
-echo "=== Starting unpacking ==="
+# ---------------------------------------------------------------------------
+# Extract
+# ---------------------------------------------------------------------------
 
-# Removing .tgz from spark version
-spk_fld=$(echo ${spk_vrn} | awk '{ print substr( $0, 0, length($0)-4 ) }')
+echo "=== Unpacking ==="
 
-if [ -d "/usr/local/spark" ] 
-then
-    echo "===Directory /usr/local/spark exists.===" 
+# Strip .tgz suffix using bash parameter expansion
+spk_fld="${spk_vrn%.tgz}"
+
+if [[ ! -d "/usr/local/spark" ]]; then
+  echo "=== Creating /usr/local/spark ==="
+  mkdir /usr/local/spark
+  tar -xf "/tmp/${spk_vrn}" -C /tmp
+  mv "/tmp/${spk_fld}/"* /usr/local/spark
+  echo "=== Files extracted successfully ==="
 else
-    echo "===Creating Spark directory==="
-    mkdir /usr/local/spark
-    echo "===Extracting files==="
-    tar -xf /tmp/${spk_vrn} -C /tmp
-    echo "===Moving files from Temp to Spark Directory==="
-    mv /tmp/${spk_fld}/* /usr/local/spark
-
+  echo "=== /usr/local/spark already exists, skipping extraction ==="
 fi
 
-if [[ $? -eq 0 ]]
-     then
-       echo "=== Files unzipped successfully ==="
-     else
-       echo "=== Error while unzipping ==="
-       exit
+# ---------------------------------------------------------------------------
+# Environment variables
+# ---------------------------------------------------------------------------
+
+echo "=== Configuring environment ==="
+
+if ! grep -qF "SPARK_HOME=/usr/local/spark" ~/.profile; then
+  echo "export SPARK_HOME=/usr/local/spark" >> ~/.profile
+  echo "export PATH=\$PATH:\$SPARK_HOME/bin:\$SPARK_HOME/sbin" >> ~/.profile
+  echo "export PYSPARK_PYTHON=/usr/bin/python3" >> ~/.profile
 fi
 
-echo "=== Starting configuration ==="
+if [[ "${spk_vrn}" == *pyspark* ]]; then
+  echo "=== Configuring PySpark ==="
+  chmod +x /usr/local/spark/bin/*.sh
+  export SPARK_HOME=/usr/local/spark
+  export PYSPARK_PYTHON=python3
+  ZIPS=("${SPARK_HOME}"/python/lib/*.zip)
+  export PYTHONPATH="${ZIPS[*]//:/ }:${PYTHONPATH:-}"
+  echo "=== PySpark configuration complete ==="
 
-echo "export SPARK_HOME=/usr/local/spark" >> ~/.profile
-echo "export PATH=$PATH:$SPARK_HOME/bin:$SPARK_HOME/sbin" >> ~/.profile
-echo "export PYSPARK_PYTHON=/usr/bin/python3" >> ~/.profile
-
-if [[ ${spk_vrn} == *pyspark* ]]
-     then
-       echo "=== Starting configuration Pyspark ==="
-       sh -c 'chmod +x /usr/local/spark/bin/*.sh'
-       export SPARK_HOME=/usr/local/spark
-#       export PYSPARK_DRIVER_PYTHON=jupyter
-#       export PYSPARK_DRIVER_PYTHON_OPTS='notebook'
-       export PYSPARK_PYTHON=python3
-       export PYTHONPATH=$(ZIPS=("$SPARK_HOME"/python/lib/*.zip); IFS=:; echo "${ZIPS[*]}"):$PYTHONPATH
-     else
-       echo "Error while configuring"
-       exit
+elif [[ "${spk_vrn}" == *SparkR* ]]; then
+  echo "=== Configuring SparkR ==="
+  chmod +x /usr/local/spark/bin/*.sh
+  export SPARK_HOME=/usr/local/spark
+  echo "=== SparkR configuration complete ==="
 fi
-## TODO *Verify env varialbles for R Spark
-if [[ ${spk_vrn} == *SparkR* ]]
-     then
-       echo "=== Starting configuration SparkR ==="
-       sh -c 'chmod +x /usr/local/${spk_vrn}/bin/*.sh'
-       export SPARK_HOME=/usr/local/${spk_vrn}
-#       export SPARKR_DRIVER_R 'R binary executable to use for SparkR shell (default is R).'
-#       export PYSPARK_DRIVER_PYTHON=jupyter
-#       export PYSPARK_DRIVER_PYTHON=jupyter
 
-     else
-       echo "=== Error while configuring ==="
-       exit
-fi
+echo "=== Spark installation complete ==="
+echo "=== Reload your shell or run: source ~/.profile ==="

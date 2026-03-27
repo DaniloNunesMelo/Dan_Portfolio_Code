@@ -1,35 +1,39 @@
 #!/bin/bash
-#Author: Danilo Melo
-#Installing mutliple pakages
+# Author: Danilo Melo
+# Installing multiple packages with pre-installation check and summary
 
-if [[ $# -eq 0 ]]
-then
-  echo "Usage: Please, enter the packages separeted by space: $0 pkg1 pkg2 ..."
-  exit 1 #Exit with no success 
+set -euo pipefail
+
+if [[ $# -eq 0 ]]; then
+  echo "Usage: $0 pkg1 pkg2 ..."
+  echo "  Example: $0 curl wget git"
+  exit 1
 fi
 
-
-if [[ $(id -u) -ne 0 ]]
-then
-  echo "Please, run from root user or with sudo privilage"
-  exit 2 #Exit with no success
+if [[ $(id -u) -ne 0 ]]; then
+  echo "Please run as root or with sudo"
+  exit 2
 fi
 
+installed=0
+skipped=0
+failed=0
 
-for each_pkg in $@ #taking all arguments for loop
-do
-  if which $each_pkg &> /dev/null
-  then
-     echo "Already $each_pkg is installed"
+for each_pkg in "$@"; do
+  if command -v "${each_pkg}" &> /dev/null; then
+    echo "[SKIP] ${each_pkg} is already installed"
+    (( skipped++ )) || true
   else
-     echo "Installing $each_pkg ..."
-     apt-get install $each_pkg -y &> /dev/null #discarting msg to not show on scream
-     if [[ $? -eq 0 ]]
-     then
-       echo "Successfully installed $each_pkg pkg"
-     else
-       echo "Unable to install vim $each_pkg"
-     fi
+    echo "[INFO] Installing ${each_pkg} ..."
+    if apt-get install "${each_pkg}" -y &> /dev/null; then
+      echo "[OK]   ${each_pkg} installed successfully"
+      (( installed++ )) || true
+    else
+      echo "[FAIL] Unable to install ${each_pkg}"
+      (( failed++ )) || true
+    fi
   fi
-
 done
+
+echo ""
+echo "=== Summary: ${installed} installed, ${skipped} skipped, ${failed} failed ==="

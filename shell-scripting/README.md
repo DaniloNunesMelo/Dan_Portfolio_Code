@@ -1,4 +1,4 @@
-# Installing Spark
+# Shell Scripting Utilities
 
 ```ascii
 ██████╗  █████╗ ███████╗██╗  ██╗
@@ -9,6 +9,67 @@
 ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝
 ```
 
+A collection of Bash utility scripts for automated environment setup on Debian/Ubuntu systems.
+
+---
+
+## Prerequisites
+
+| Requirement | Version | Scripts |
+|---|---|---|
+| Bash | 4.0+ | all |
+| `curl` / `wget` | any | `install_spark.sh` |
+| Java (JDK/JRE) | 8+ | `install_spark.sh` |
+| `apt-get` | any | `install_pkgs.sh` |
+| Root / sudo | — | all |
+
+---
+
+## Scripts
+
+### `install_pkgs.sh` — Batch Package Installer
+
+Installs multiple `apt` packages in a single command. Skips packages that are already installed and prints a summary at the end.
+
+**Usage**
+
+```bash
+sudo ./install_pkgs.sh pkg1 pkg2 pkg3 ...
+```
+
+**Examples**
+
+```bash
+# Install common dev tools
+sudo ./install_pkgs.sh curl wget git vim build-essential
+
+# Install Python and Java
+sudo ./install_pkgs.sh python3 python3-pip default-jdk
+```
+
+**Output format**
+
+```
+[SKIP] curl is already installed
+[INFO] Installing wget ...
+[OK]   wget installed successfully
+[FAIL] nonexistent-pkg failed to install
+
+=== Summary: 1 installed, 1 skipped, 1 failed ===
+```
+
+**Exit codes**
+
+| Code | Meaning |
+|---|---|
+| 0 | All operations completed |
+| 1 | No arguments provided |
+| 2 | Not running as root |
+
+---
+
+### `install_spark.sh` — Apache Spark Installer
+
 ```ascii
       ____              __
      / __/__  ___ _____/ /__
@@ -17,129 +78,120 @@
       /_/
 ```
 
-## Script
+Automates Apache Spark installation: scrapes available versions from Apache mirrors, downloads the selected tarball, verifies the SHA-512 checksum, extracts to `/usr/local/spark`, and configures environment variables in `~/.profile`.
 
-`install_spark.sh`
+**What it does**
 
-1. Root access validation
+1. Validates root access and Java installation
+2. Fetches available Spark versions from `downloads.apache.org`
+3. Prompts for version selection (or accepts one as an argument)
+4. Downloads the `.tgz` and `.sha512` from Apache mirrors
+5. Verifies integrity with `sha512sum`
+6. Extracts to `/usr/local/spark` (skips if already exists)
+7. Appends `SPARK_HOME`, `PATH`, and `PYSPARK_PYTHON` to `~/.profile` (idempotent)
+8. Applies PySpark or SparkR-specific config based on the selected package
 
-2. Argument validation (The version can be passed as argument)
-
-3. Prepare URL
-
-4. Check parameter or Web Scraping to choose the version
-
-5. Download the version
-
-6. Checking integrity
-
-7. Unpacking
-
-8. Env Variables Configuration
-
-> Selecting Spark Version
+**Usage — interactive**
 
 ```bash
-root@4be53fe57784:/spark# ./install_spark.sh
-=== You have root access ===
-1) SparkR_3.0.1.tar.gz                    4) spark-3.0.1-bin-hadoop2.7.tgz          7) spark-3.0.1.tgz
-2) pyspark-3.0.1.tar.gz                   5) spark-3.0.1-bin-hadoop3.2.tgz
-3) spark-3.0.1-bin-hadoop2.7-hive1.2.tgz  6) spark-3.0.1-bin-without-hadoop.tgz
-Enter the Spark Version to install : 5
+sudo ./install_spark.sh
+# Presents a numbered menu of available versions
 ```
 
-> Using Dockerfile and passing as argument
+**Usage — non-interactive (e.g. Dockerfile)**
 
 ```bash
--> docker build --tag dan-spark-base:v1.0 .
-[+] Building 79.2s (10/10) FINISHED
- => [internal] load build definition from Dockerfile                                                                                                   0.0s
- => => transferring dockerfile: 38B                                                                                                                    0.0s
- => [internal] load .dockerignore                                                                                                                      0.0s
- => => transferring context: 2B                                                                                                                        0.0s
- => [internal] load metadata for docker.io/library/ubuntu:latest                                                                                       2.4s
- => [1/5] FROM docker.io/library/ubuntu@sha256:703218c0465075f4425e58fac086e09e1de5c340b12976ab9eb8ad26615c3715                                        6.4s
- => => resolve docker.io/library/ubuntu@sha256:703218c0465075f4425e58fac086e09e1de5c340b12976ab9eb8ad26615c3715                                        0.0s
- => => sha256:703218c0465075f4425e58fac086e09e1de5c340b12976ab9eb8ad26615c3715 1.20kB / 1.20kB                                                         0.0s
- => => sha256:3093096ee188f8ff4531949b8f6115af4747ec1c58858c091c8cb4579c39cc4e 943B / 943B                                                             0.0s
- => => sha256:f63181f19b2fe819156dcb068b3b5bc036820bec7014c5f77277cfa341d4cb5e 3.31kB / 3.31kB                                                         0.0s
- => => sha256:83ee3a23efb7c75849515a6d46551c608b255d8402a4d3753752b88e0dc188fa 28.57MB / 28.57MB                                                       4.7s
- => => sha256:db98fc6f11f08950985a203e07755c3262c680d00084f601e7304b768c83b3b1 843B / 843B                                                             0.5s
- => => sha256:f611acd52c6cad803b06b5ba932e4aabd0f2d0d5a4d050c81de2832fcb781274 162B / 162B                                                             0.6s
- => => extracting sha256:83ee3a23efb7c75849515a6d46551c608b255d8402a4d3753752b88e0dc188fa                                                              1.3s
- => => extracting sha256:db98fc6f11f08950985a203e07755c3262c680d00084f601e7304b768c83b3b1                                                              0.0s
- => => extracting sha256:f611acd52c6cad803b06b5ba932e4aabd0f2d0d5a4d050c81de2832fcb781274                                                              0.0s
- => [internal] load build context                                                                                                                      0.0s
- => => transferring context: 3.12kB                                                                                                                    0.0s
- => [2/5] RUN apt-get update &&     apt-get install -y supervisor &&     apt-get install -y wget &&     apt-get install -y curl &&     apt-get clean  30.4s
- => [3/5] RUN mkdir spark                                                                                                                              0.5s
- => [4/5] COPY ./install_spark.sh spark                                                                                                                0.1s
- => [5/5] RUN ./spark/install_spark.sh "spark-3.0.1-bin-hadoop3.2.tgz"                                                                                37.3s
- => exporting to image                                                                                                                                 2.0s
- => => exporting layers                                                                                                                                2.0s
- => => writing image sha256:85a62a8e25b2e0dec87abb5024359ee0cfe9f76ee7acbf9c5c957aa33f9ac209                                                           0.0s
- => => naming to docker.io/library/dan-spark-base:v1.0                                                                                                 0.0s
+sudo ./install_spark.sh spark-3.5.1-bin-hadoop3.tgz
 ```
 
-## Adtional configuration
+**Docker example**
+
+```dockerfile
+FROM ubuntu:latest
+RUN apt-get update && apt-get install -y curl wget default-jdk
+COPY install_spark.sh /spark/
+RUN /spark/install_spark.sh "spark-3.5.1-bin-hadoop3.tgz"
+```
+
+**Environment variables configured**
+
+| Variable | Value |
+|---|---|
+| `SPARK_HOME` | `/usr/local/spark` |
+| `PATH` | `$PATH:$SPARK_HOME/bin:$SPARK_HOME/sbin` |
+| `PYSPARK_PYTHON` | `/usr/bin/python3` |
+| `PYTHONPATH` | `$SPARK_HOME/python/lib/*.zip` (PySpark only) |
+
+After installation, reload your shell:
+
+```bash
+source ~/.profile
+```
+
+---
+
+## Additional Configuration
 
 ### Start a standalone master server
 
-* At this point you can browse to <http://localhost:8080/> to view the status screen.
+```bash
 sudo $SPARK_HOME/sbin/start-master.sh
+# Browse to http://localhost:8080 for the status UI
+```
 
 ### Start a worker process
 
 ```bash
-sudo $SPARK_HOME/sbin/start-slave.sh spark://ethane:7077
+sudo $SPARK_HOME/sbin/start-worker.sh spark://localhost:7077
 ```
 
-### Test out the Spark shell. You’ll note that this exposes the native Scala interface to Spark
-
-* Scala
+### Spark Shell (Scala)
 
 ```bash
 $SPARK_HOME/bin/spark-shell
 ```
 
-### Maybe Scala is not your cup of tea and you’d prefer to use Python. No problem
-
-* Python
+### PySpark
 
 ```bash
 $SPARK_HOME/bin/pyspark
 ```
 
-[spark-jupyter](https://medium.com/@am.benatmane/setting-up-a-spark-environment-with-jupyter-notebook-and-apache-zeppelin-on-ubuntu-e12116d6539e)
-
-```bash
-
-pip install spylon-kernel
-# or
-conda install -c conda-forge spylon-kernel
-
-You can use spylon-kernel as Scala kernel for Jupyter Notebook. Do this when you want to work with Spark in Scala with a bit of Python code mixed in.
-Create a kernel spec for Jupyter notebook by running the following command:
-
-python -m spylon_kernel install --user
-
-```
-
-### Finally, if you prefer to work with R, that’s also catered for
-
-* R
+### SparkR
 
 ```bash
 $SPARK_HOME/bin/sparkR
 ```
 
-*Links
+### Jupyter integration (spylon-kernel)
 
-[spark-on-ubuntu](https://datawookie.netlify.app/blog/2017/07/installing-spark-on-ubuntu/)
+```bash
+pip install spylon-kernel
+python -m spylon_kernel install --user
+# Then launch Jupyter and select the spylon-kernel (Scala + Spark)
+```
 
-[scala-commans](https://data-flair.training/blogs/scala-spark-shell-commands/)
+---
 
-[spark-cluster](https://www.tutorialkart.com/apache-spark/how-to-setup-an-apache-spark-cluster/)
+## Linting
 
+Both scripts are checked with [ShellCheck](https://www.shellcheck.net/). A `.shellcheckrc` is included at the project root:
 
+```bash
+# Install shellcheck
+apt-get install -y shellcheck   # Debian/Ubuntu
+brew install shellcheck          # macOS
 
+# Run
+shellcheck install_pkgs.sh install_spark.sh
+```
+
+---
+
+## Links
+
+- [Apache Spark Downloads](https://spark.apache.org/downloads.html)
+- [Installing Spark on Ubuntu](https://datawookie.netlify.app/blog/2017/07/installing-spark-on-ubuntu/)
+- [Spark Cluster Setup](https://www.tutorialkart.com/apache-spark/how-to-setup-an-apache-spark-cluster/)
+- [Spark + Jupyter Notebook](https://medium.com/@am.benatmane/setting-up-a-spark-environment-with-jupyter-notebook-and-apache-zeppelin-on-ubuntu-e12116d6539e)
+- [Scala Spark Shell Commands](https://data-flair.training/blogs/scala-spark-shell-commands/)
