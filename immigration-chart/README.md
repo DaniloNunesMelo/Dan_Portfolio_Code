@@ -1,3 +1,15 @@
+---
+title: Immigration Chart
+emoji: 🌍
+colorFrom: blue
+colorTo: green
+sdk: gradio
+sdk_version: "4.7.1"
+python_version: "3.11"
+app_file: app.py
+pinned: false
+---
+
 # Immigration Analysis Dashboard
 
 Interactive web application for analyzing international migration data for **Italy** and **Canada**, built with modern Python, Gradio, and Plotly.
