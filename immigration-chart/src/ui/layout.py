@@ -26,7 +26,7 @@ from .controls import (
 
 
 def create_app() -> gr.Blocks:
-    with gr.Blocks(title="Immigration Analysis Dashboard") as app:
+    with gr.Blocks(title="Immigration Analysis Dashboard", theme=gr.themes.Soft()) as app:
 
         gr.Markdown(
             "# Immigration Analysis Dashboard\n"
