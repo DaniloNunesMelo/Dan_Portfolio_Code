@@ -41,4 +41,4 @@ jobs:
           HF_USERNAME: ${{ secrets.HF_USERNAME }}
         run: |
           git remote add hf https://${HF_USERNAME}:${HF_TOKEN}@huggingface.co/spaces/${HF_USERNAME}/immigration-chart
-          git push hf master --force
+          git push hf $(git subtree split --prefix immigration-chart HEAD):main --force
