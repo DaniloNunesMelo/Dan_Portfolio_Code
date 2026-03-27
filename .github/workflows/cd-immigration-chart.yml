@@ -42,6 +42,13 @@ jobs:
           import os
           from huggingface_hub import HfApi
           api = HfApi()
+          api.create_repo(
+              repo_id="DaniloNMELO/immigration-chart",
+              repo_type="space",
+              space_sdk="gradio",
+              token=os.environ["HF_TOKEN"],
+              exist_ok=True,
+          )
           api.upload_folder(
               folder_path="immigration-chart",
               repo_id="DaniloNMELO/immigration-chart",
