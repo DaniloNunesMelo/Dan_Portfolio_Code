@@ -13,11 +13,9 @@ METRICS_BY_COUNTRY: dict[str, list[str]] = {
         "Stock of Foreign-Born Population",
         "Stock of Foreign Nationals",
         "Citizenship Acquisition",
-        "Outflows of National Population",
     ],
     "Canada": [
         "Inflows of Foreign Population",
-        "Outflows of National Population",
         "Permanent Residents",
     ],
 }

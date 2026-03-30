@@ -13,10 +13,10 @@ import plotly.express as px
 from ..processors.italy import load_italy
 from ..processors.canada import load_canada
 from ..processors.merge import merge_sources, get_coverage_info
-from ..charts.registry import build_chart, _empty_figure
+from ..charts.registry import build_chart, _empty_figure, GROUP_BY_MAP
 from .controls import (
     COUNTRY_TO_ISO, METRICS_BY_COUNTRY, COMMON_METRICS,
-    DEFAULT_YEAR_START, DEFAULT_YEAR_END,
+    DEFAULT_YEAR_START, DEFAULT_YEAR_END, GROUP_BY_OPTIONS,
 )
 from .pivot import build_pivot_table
 
@@ -79,6 +79,34 @@ def update_metric_choices(countries: list[str]) -> dict:
 
     value = ordered[0] if ordered else None
     return gr.update(choices=ordered, value=value)
+
+
+def update_groupby_choices(countries: list[str]) -> dict:
+    """Return gr.update for group_by dropdown, hiding options whose column has no data."""
+    import gradio as gr
+    if not countries:
+        return gr.update(choices=GROUP_BY_OPTIONS, value=GROUP_BY_OPTIONS[0])
+
+    frames = []
+    for country in countries:
+        iso3 = COUNTRY_TO_ISO.get(country)
+        if iso3 and iso3 in _data_store:
+            frames.append(_data_store[iso3])
+
+    if not frames:
+        return gr.update(choices=GROUP_BY_OPTIONS, value=GROUP_BY_OPTIONS[0])
+
+    combined = pd.concat(frames, ignore_index=True)
+    available = [
+        opt for opt in GROUP_BY_OPTIONS
+        if (col := GROUP_BY_MAP.get(opt))
+        and col in combined.columns
+        and combined[col].notna().any()
+    ]
+    if not available:
+        available = GROUP_BY_OPTIONS
+
+    return gr.update(choices=available, value=available[0])
 
 
 def render_chart(

@@ -60,8 +60,12 @@ def build_chart(
     if len(df_f) == 0:
         return _empty_figure(f"No data for {metric or 'selected metric'} ({year_start}–{year_end})")
 
-    # Resolve group column
+    # Resolve group column; fall back to counterpart_name if column has no data
     group_col = GROUP_BY_MAP.get(group_by, "counterpart_name")
+    if group_col != "counterpart_name" and (
+        group_col not in df_f.columns or df_f[group_col].isna().all()
+    ):
+        group_col = "counterpart_name"
 
     # Auto-title
     if not title:

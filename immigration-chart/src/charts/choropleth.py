@@ -20,13 +20,18 @@ def build_choropleth(df: pd.DataFrame, group_col: str, top_n: int, title: str) -
         from .registry import _empty_figure
         return _empty_figure("No country-level data for choropleth")
 
+    # Cap color scale at 95th percentile so outliers don't wash out the map
+    p95 = float(agg["obs_value"].quantile(0.95))
+    zmax = max(p95, agg["obs_value"].min() * 2)  # ensure range > 0
+
     fig = px.choropleth(
         agg,
         locations="counterpart",
         locationmode="ISO-3",
         color="obs_value",
         hover_name="counterpart_name",
-        color_continuous_scale="Blues",
+        color_continuous_scale="YlOrRd",
+        range_color=(0, zmax),
         title=title,
         labels={"obs_value": "People", "counterpart": "Country Code"},
     )

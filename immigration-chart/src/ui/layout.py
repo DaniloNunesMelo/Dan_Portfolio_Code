@@ -5,6 +5,7 @@ import gradio as gr
 
 from .callbacks import (
     update_metric_choices,
+    update_groupby_choices,
     render_chart,
     render_pivot,
     render_history,
@@ -135,6 +136,11 @@ def create_app() -> gr.Blocks:
             fn=update_metric_choices,
             inputs=[country_select],
             outputs=[metric_select],
+        )
+        country_select.change(
+            fn=update_groupby_choices,
+            inputs=[country_select],
+            outputs=[group_by],
         )
 
         # Rerender chart on any control change

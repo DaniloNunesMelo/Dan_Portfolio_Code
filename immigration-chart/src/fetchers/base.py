@@ -7,6 +7,8 @@ from datetime import datetime, timezone
 import pandas as pd
 
 CACHE_DIR = Path(__file__).parents[2] / "data" / "cache"
+STAGING_DIR = Path(__file__).parents[2] / "data" / "staging"
+MANIFEST_PATH = STAGING_DIR / "manifest.json"
 _memory: dict[str, tuple[pd.DataFrame, datetime]] = {}
 
 
@@ -54,6 +56,34 @@ class BaseFetcher(ABC):
             )
         )
 
+    def _save_staging(self, key: str, df: pd.DataFrame, **params) -> None:
+        """Write a human-readable snapshot to data/staging/ and update the manifest."""
+        try:
+            STAGING_DIR.mkdir(parents=True, exist_ok=True)
+            ts = datetime.now(timezone.utc)
+            ts_str = ts.strftime("%Y%m%d_%H%M%S")
+            fetcher_name = self.__class__.__name__
+            filename = f"{ts_str}_{fetcher_name}_{key}.parquet"
+            df.to_parquet(STAGING_DIR / filename, index=False)
+
+            entry = {
+                "file": filename,
+                "fetcher": fetcher_name,
+                "params": params,
+                "row_count": len(df),
+                "fetched_at": ts.isoformat(),
+            }
+            manifest: list = []
+            if MANIFEST_PATH.exists():
+                try:
+                    manifest = json.loads(MANIFEST_PATH.read_text())
+                except Exception:
+                    manifest = []
+            manifest.append(entry)
+            MANIFEST_PATH.write_text(json.dumps(manifest, indent=2))
+        except Exception:
+            pass  # staging writes are best-effort
+
     def fetch(self, **params) -> tuple[pd.DataFrame, str]:
         key = self._cache_key(**params)
         # Memory cache
@@ -71,6 +101,7 @@ class BaseFetcher(ABC):
         try:
             df = self._fetch_live(**params)
             self._save_disk(key, df)
+            self._save_staging(key, df, **params)
             _memory[key] = (df, datetime.now(timezone.utc))
             return df, "live"
         except Exception as e:

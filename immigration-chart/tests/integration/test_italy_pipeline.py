@@ -86,6 +86,19 @@ def test_load_italy_var_code_filter(mock_italy_fetchers):
     assert set(df["var_code"].unique()).issubset({"B11"})
 
 
+def test_load_italy_no_b21_in_default(canonical_df):
+    """B21 is not in default var_codes — no B21 rows should appear and no error raised."""
+    ita_df = canonical_df.copy()
+    ita_df["ref_area"] = "ITA"
+    with (
+        patch("src.processors.italy._oecd.fetch_country", return_value=(ita_df, "cached")),
+        patch("src.processors.italy._eurostat.fetch_italy", return_value=(ita_df, "cached")),
+        patch("src.processors.italy.load_italy_csv", return_value=ita_df),
+    ):
+        df, _ = load_italy()
+        assert "B21" not in df["var_code"].values
+
+
 def test_load_italy_use_live_false_skips_live_fetchers(canonical_df):
     """use_live=False should not call OECD or Eurostat."""
     ita_df = canonical_df.copy()

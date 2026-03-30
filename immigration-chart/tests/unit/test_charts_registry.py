@@ -110,3 +110,22 @@ def test_build_chart_bar_type(canonical_df):
         year_start=2000, year_end=2024,
     )
     assert isinstance(fig, go.Figure)
+
+
+def test_build_chart_groupby_null_column_falls_back(canonical_df):
+    """GroupBy column that is all-NULL should silently fall back to counterpart_name."""
+    # canonical_df has area_name=None; "By Area" maps to area_name
+    fig = build_chart(
+        df=canonical_df, chart_type="Line", group_by="By Area",
+        year_start=2000, year_end=2024,
+    )
+    assert isinstance(fig, go.Figure)
+
+
+def test_build_chart_groupby_all_null_province_falls_back(canonical_df):
+    """By Province with all-null province column still returns a valid figure."""
+    fig = build_chart(
+        df=canonical_df, chart_type="Bar", group_by="By Province",
+        year_start=2000, year_end=2024,
+    )
+    assert isinstance(fig, go.Figure)

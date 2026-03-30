@@ -1,9 +1,10 @@
 """Unit tests for src/fetchers/oecd.py"""
+import json
 import pytest
 import responses as responses_lib
 
 from src.fetchers.oecd import OECDFetcher, _safe_int, OECD_URL
-from src.fetchers.base import FetchError
+from src.fetchers.base import FetchError, STAGING_DIR, MANIFEST_PATH
 
 CANONICAL_COLUMNS = [
     "ref_area", "ref_area_name", "counterpart", "counterpart_name",
@@ -103,3 +104,53 @@ def test_fetch_live_422_raises():
     fetcher = OECDFetcher()
     with pytest.raises(FetchError):
         fetcher._fetch_live("ITA", "B11", "T")
+
+
+# ── staging layer ─────────────────────────────────────────────────────────────
+
+def test_save_staging_writes_parquet_and_manifest(tmp_path, oecd_json_response):
+    """_save_staging should create a .parquet file and update manifest.json."""
+    import src.fetchers.base as base_mod
+    original_staging = base_mod.STAGING_DIR
+    original_manifest = base_mod.MANIFEST_PATH
+    try:
+        base_mod.STAGING_DIR = tmp_path
+        base_mod.MANIFEST_PATH = tmp_path / "manifest.json"
+
+        fetcher = OECDFetcher()
+        df = fetcher._parse_series_format(oecd_json_response, "ITA", "B11", "T")
+        fetcher._save_staging("abc123", df, ref_area="ITA", var_code="B11", sex="T")
+
+        parquet_files = list(tmp_path.glob("*.parquet"))
+        assert len(parquet_files) == 1
+
+        manifest = json.loads((tmp_path / "manifest.json").read_text())
+        assert len(manifest) == 1
+        entry = manifest[0]
+        assert entry["fetcher"] == "OECDFetcher"
+        assert entry["params"]["ref_area"] == "ITA"
+        assert entry["row_count"] == len(df)
+    finally:
+        base_mod.STAGING_DIR = original_staging
+        base_mod.MANIFEST_PATH = original_manifest
+
+
+def test_save_staging_appends_to_existing_manifest(tmp_path, oecd_json_response):
+    """Multiple _save_staging calls should append entries to the manifest."""
+    import src.fetchers.base as base_mod
+    original_staging = base_mod.STAGING_DIR
+    original_manifest = base_mod.MANIFEST_PATH
+    try:
+        base_mod.STAGING_DIR = tmp_path
+        base_mod.MANIFEST_PATH = tmp_path / "manifest.json"
+
+        fetcher = OECDFetcher()
+        df = fetcher._parse_series_format(oecd_json_response, "ITA", "B11", "T")
+        fetcher._save_staging("key1", df, ref_area="ITA")
+        fetcher._save_staging("key2", df, ref_area="CAN")
+
+        manifest = json.loads((tmp_path / "manifest.json").read_text())
+        assert len(manifest) == 2
+    finally:
+        base_mod.STAGING_DIR = original_staging
+        base_mod.MANIFEST_PATH = original_manifest

@@ -29,12 +29,20 @@ def build_heatmap(df: pd.DataFrame, group_col: str, top_n: int, title: str) -> g
         from .registry import _empty_figure
         return _empty_figure("Cannot pivot data for heatmap")
 
+    flat = pivot.values.flatten()
+    nonzero = flat[flat > 0]
+    zmax = float(nonzero.max()) if len(nonzero) else 1.0
+    # Cap at 95th percentile so sparse outliers don't wash out the palette
+    p95 = float(pd.Series(nonzero).quantile(0.95)) if len(nonzero) > 1 else zmax
+
     fig = px.imshow(
         pivot,
         title=title,
         labels=dict(x="Year", y=group_col.replace("_", " ").title(), color="People"),
         aspect="auto",
-        color_continuous_scale="Blues",
+        color_continuous_scale="YlOrRd",
+        zmin=0,
+        zmax=p95,
     )
     fig.update_layout(plot_bgcolor="white", paper_bgcolor="white")
     return fig

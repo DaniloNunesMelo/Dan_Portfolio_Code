@@ -169,3 +169,34 @@ def test_get_source_info_md_loaded(canonical_df):
     result = cb.get_source_info_md(["Italy"])
     assert "Italy" in result
     assert "OECD_MIG" in result
+
+
+# ── update_groupby_choices ────────────────────────────────────────────────────
+
+def test_update_groupby_choices_no_countries():
+    result = cb.update_groupby_choices([])
+    assert result["choices"] is not None
+    assert len(result["choices"]) > 0
+
+
+def test_update_groupby_choices_no_data_loaded():
+    """Returns full list when data store is empty."""
+    result = cb.update_groupby_choices(["Italy"])
+    assert "By Origin Country" in result["choices"]
+
+
+def test_update_groupby_choices_filters_null_cols(canonical_df):
+    """Options whose column is all-NULL should be excluded when data is loaded."""
+    import pandas as pd
+    # Build a DataFrame where area_name and province are all null
+    df = canonical_df.copy()
+    df["area_name"] = None
+    df["province"] = None
+    cb._data_store["ITA"] = df
+    result = cb.update_groupby_choices(["Italy"])
+    # counterpart_name is populated → "By Origin Country" should be present
+    assert "By Origin Country" in result["choices"]
+    # area_name is None → "By Area" should be absent
+    assert "By Area" not in result["choices"]
+    # province is None → "By Province" should be absent
+    assert "By Province" not in result["choices"]

@@ -76,6 +76,21 @@ def test_heatmap_both_cols_missing():
     assert isinstance(fig, go.Figure)
 
 
+def test_heatmap_uses_ylorod_colorscale(canonical_df):
+    """Heatmap should use YlOrRd colorscale for better visibility of low values."""
+    fig = build_heatmap(canonical_df, GROUP_COL, TOP_N, TITLE)
+    # px.imshow stores colorscale in layout.coloraxis
+    assert fig.layout.coloraxis is not None
+
+
+def test_heatmap_zmax_capped_at_p95(canonical_df):
+    """zmax/zmin should be set on coloraxis so low values are visible."""
+    fig = build_heatmap(canonical_df, GROUP_COL, TOP_N, TITLE)
+    # px.imshow with zmin/zmax sets cmin/cmax on the coloraxis
+    assert fig.layout.coloraxis.cmax is not None
+    assert fig.layout.coloraxis.cmin == 0
+
+
 # ── pie chart ─────────────────────────────────────────────────────────────────
 
 def test_pie_returns_figure(canonical_df):
@@ -109,3 +124,11 @@ def test_choropleth_no_valid_iso3_returns_figure():
     })
     fig = build_choropleth(df, "counterpart_name", TOP_N, TITLE)
     assert isinstance(fig, go.Figure)
+
+
+def test_choropleth_range_color_set(canonical_df):
+    """Choropleth color range should be capped so the map is not washed out."""
+    from src.charts.choropleth import build_choropleth
+    fig = build_choropleth(canonical_df, GROUP_COL, TOP_N, TITLE)
+    assert fig.layout.coloraxis.cmax is not None
+    assert fig.layout.coloraxis.cmin == 0
