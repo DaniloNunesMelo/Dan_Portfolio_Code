@@ -41,7 +41,7 @@ def load_italy(
                 print(f"[italy] OECD fetch failed for {var}: {e}")
 
         # Eurostat enrichment (B11 additional detail)
-        for dataset in ["migr_imm1ctz", "migr_emi1ctz", "migr_acqctz"]:
+        for dataset in ["migr_imm1ctz", "migr_emi1ctz", "migr_acq"]:
             try:
                 df, src = _eurostat.fetch_italy(dataset=dataset)
                 frames.append(df)

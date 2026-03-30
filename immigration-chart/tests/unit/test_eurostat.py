@@ -79,7 +79,7 @@ def test_dataset_to_var_emi():
 
 
 def test_dataset_to_var_acq():
-    assert DATASET_TO_VAR["migr_acqctz"] == "B16"
+    assert DATASET_TO_VAR["migr_acq"] == "B16"
 
 
 # ── HTTP error handling ───────────────────────────────────────────────────────

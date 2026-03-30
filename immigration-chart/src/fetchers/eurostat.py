@@ -16,13 +16,13 @@ EUROSTAT_BASE = (
 DATASET_TO_VAR = {
     "migr_imm1ctz": "B11",
     "migr_emi1ctz": "B12",
-    "migr_acqctz": "B16",
+    "migr_acq": "B16",
 }
 
 DATASET_TO_METRIC = {
     "migr_imm1ctz": "Inflows of Foreign Population",
     "migr_emi1ctz": "Outflows of Foreign Population",
-    "migr_acqctz": "Citizenship Acquisition",
+    "migr_acq": "Citizenship Acquisition",
 }
 
 
@@ -35,7 +35,7 @@ class EurostatFetcher(BaseFetcher):
     def _fetch_live(self, dataset: str, geo: str = "IT", sex: str = "T") -> pd.DataFrame:
         url = EUROSTAT_BASE.format(dataset=dataset)
         params: dict = {"format": "JSON", "lang": "en", "geo": geo, "unit": "NR", "sex": sex}
-        # migr_acqctz has different dimensions (no agedef/age); try without agedef
+        # migr_acq has different dimensions (no agedef/age); try without agedef
         # The other two datasets accept agedef/age but don't require them
         resp = requests.get(url, params=params, timeout=30)
         if resp.status_code in (404, 400):
