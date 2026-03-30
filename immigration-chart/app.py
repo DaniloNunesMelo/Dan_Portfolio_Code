@@ -26,6 +26,4 @@ if __name__ == "__main__":
         server_port=7860,
         share=False,
         show_error=True,
-        ssr_mode=False,
-        theme=gr.themes.Soft(),
     )
