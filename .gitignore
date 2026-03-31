@@ -6,7 +6,7 @@ dist
 build
 .venv
 venv
-
+.venv
 # IDE
 .idea
 .vscode
@@ -17,11 +17,11 @@ venv
 derby.log
 metastore_db
 spark-warehouse
+/Dan_Portfolio_Code/palber_marketing_bot/.env
 
 # old projects
 python-data-analysis
 shell-scripting
 spark-cluster
 spark-data-analysis
-swift
-palber_marketing_bot
+palber_marketing_bot/

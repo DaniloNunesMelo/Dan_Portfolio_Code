@@ -13,6 +13,7 @@ from .api import make_hashify_fn
 from .config import load_parameters
 from .io_utils import read_csv, write_csv
 from .transform import build_transactions
+from .validate import validate_etl_data
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +81,15 @@ def run_pipeline(
     contracts_df = read_csv(spark, contracts_path)
     claims_df = read_csv(spark, claims_path)
 
+    if not validate_etl_data(
+        claims_df,
+        stage="after_raw_input",
+        critical_cols=["CLAIM_ID", "AMOUNT"],
+        amount_col="AMOUNT",
+        id_col="CLAIM_ID",
+    ):
+        raise RuntimeError("Data quality validation failed at stage: after_raw_input")
+
     hash_fn = make_hashify_fn(
         base_url=config.get(
             "hashify_base_url",
@@ -89,6 +99,15 @@ def run_pipeline(
     )
 
     transactions_df = build_transactions(claims_df, contracts_df, config, hash_fn)
+
+    if not validate_etl_data(
+        transactions_df,
+        stage="after_build_transactions",
+        critical_cols=["NSE_ID", "CONFORMED_VALUE", "TRANSACTION_TYPE"],
+        amount_col="CONFORMED_VALUE",
+        id_col="NSE_ID",
+    ):
+        raise RuntimeError("Data quality validation failed at stage: after_build_transactions")
 
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     write_csv(
