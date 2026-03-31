@@ -167,6 +167,27 @@ def add_system_timestamp(df: DataFrame) -> DataFrame:
     return df.withColumn("SYSTEM_TIMESTAMP", F.current_timestamp())
 
 
+def add_transaction_category(
+    df: DataFrame,
+    config: dict[str, Any],
+) -> DataFrame:
+    """Categorize transactions based on CONFORMED_VALUE sign.
+
+    Negative values indicate refunds or recoveries; positive values are charges.
+    Labels are driven by config keys: ``transaction_category_negative`` and
+    ``transaction_category_positive``.
+    """
+    negative_label = config.get("transaction_category_negative", "REFUND")
+    positive_label = config.get("transaction_category_positive", "CHARGE")
+
+    return df.withColumn(
+        "TRANSACTION_CATEGORY",
+        F.when(F.col("CONFORMED_VALUE") < 0, F.lit(negative_label)).otherwise(
+            F.lit(positive_label)
+        ),
+    )
+
+
 def add_nse_id(
     df: DataFrame,
     hash_fn: Callable[[str | None], str | None],
@@ -201,6 +222,7 @@ def build_transactions(
     df = add_creation_date(df, config["creation_date_format"])
     df = add_system_timestamp(df)
     df = add_nse_id(df, hash_fn)
+    df = add_transaction_category(df, config)
     logger.debug("All transformations complete")
 
     target_cols = [f.name for f in TRANSACTIONS_SCHEMA.fields]

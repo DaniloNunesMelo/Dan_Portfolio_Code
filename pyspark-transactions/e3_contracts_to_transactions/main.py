@@ -85,7 +85,6 @@ def run_pipeline(
         claims_df,
         stage="after_raw_input",
         critical_cols=["CLAIM_ID", "AMOUNT"],
-        amount_col="AMOUNT",
         id_col="CLAIM_ID",
     ):
         raise RuntimeError("Data quality validation failed at stage: after_raw_input")

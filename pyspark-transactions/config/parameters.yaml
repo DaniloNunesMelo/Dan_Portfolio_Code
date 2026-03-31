@@ -33,6 +33,11 @@ transaction_direction_mapping:
   "DI": "DIRECT"
   "RC": "RECOVERY"
 
+# ── Transaction category ──────────────────────────────────
+# Applied after conformed value is computed. Negative CONFORMED_VALUE = refund/recovery.
+transaction_category_negative: "REFUND"
+transaction_category_positive: "CHARGE"
+
 # ── Date formats (input) ──────────────────────────────────
 date_of_loss_format: "dd.MM.yyyy"
 creation_date_format: "dd.MM.yyyy HH:mm"

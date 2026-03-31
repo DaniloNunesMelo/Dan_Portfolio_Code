@@ -23,5 +23,6 @@ TRANSACTIONS_SCHEMA = StructType(
         StructField("CREATION_DATE", TimestampType(), nullable=True),
         StructField("SYSTEM_TIMESTAMP", TimestampType(), nullable=True),
         StructField("NSE_ID", StringType(), nullable=False),
+        StructField("TRANSACTION_CATEGORY", StringType(), nullable=False),
     ]
 )
