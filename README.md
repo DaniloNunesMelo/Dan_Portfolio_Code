@@ -2,16 +2,17 @@
 
 [Full report](https://htmlpreview.github.io/?https://github.com/DaniloNunesMelo/Dan_Portfolio_Code/blob/python-coverage-comment-action-data/htmlcov/index.html)
 
-| Name                                            |    Stmts |     Miss |    Cover |   Missing |
-|------------------------------------------------ | -------: | -------: | -------: | --------: |
-| e3\_contracts\_to\_transactions/\_\_init\_\_.py |        0 |        0 |     100% |           |
-| e3\_contracts\_to\_transactions/api.py          |       22 |        0 |     100% |           |
-| e3\_contracts\_to\_transactions/config.py       |       21 |        0 |     100% |           |
-| e3\_contracts\_to\_transactions/io\_utils.py    |       24 |        0 |     100% |           |
-| e3\_contracts\_to\_transactions/main.py         |       40 |        0 |     100% |           |
-| e3\_contracts\_to\_transactions/schemas.py      |        2 |        0 |     100% |           |
-| e3\_contracts\_to\_transactions/transform.py    |       81 |        0 |     100% |           |
-| **TOTAL**                                       |  **190** |    **0** | **100%** |           |
+| Name                                            |    Stmts |     Miss |   Cover |   Missing |
+|------------------------------------------------ | -------: | -------: | ------: | --------: |
+| e3\_contracts\_to\_transactions/\_\_init\_\_.py |        0 |        0 |    100% |           |
+| e3\_contracts\_to\_transactions/api.py          |       22 |        0 |    100% |           |
+| e3\_contracts\_to\_transactions/config.py       |       21 |        0 |    100% |           |
+| e3\_contracts\_to\_transactions/io\_utils.py    |       24 |        0 |    100% |           |
+| e3\_contracts\_to\_transactions/main.py         |       45 |        2 |     96% |   91, 110 |
+| e3\_contracts\_to\_transactions/schemas.py      |        2 |        0 |    100% |           |
+| e3\_contracts\_to\_transactions/transform.py    |       81 |        0 |    100% |           |
+| e3\_contracts\_to\_transactions/validate.py     |       26 |        6 |     77% |31, 37, 44, 49-51 |
+| **TOTAL**                                       |  **221** |    **8** | **96%** |           |
 
 
 ## Setup coverage badge
