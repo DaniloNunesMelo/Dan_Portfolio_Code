@@ -32,7 +32,7 @@ def validate_etl_data(
 
     # Check for negative/invalid amounts
     if amount_col:
-        neg_count = df.filter(col(amount_col) < 0).count()
+        neg_count = df.filter(col(amount_col).cast("double") < 0).count()
         if neg_count > 0:
             errors.append(f"Found {neg_count} negative values in {amount_col} at {stage}")
 
