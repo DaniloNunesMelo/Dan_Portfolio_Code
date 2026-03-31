@@ -103,7 +103,6 @@ def run_pipeline(
         transactions_df,
         stage="after_build_transactions",
         critical_cols=["NSE_ID", "CONFORMED_VALUE", "TRANSACTION_TYPE"],
-        amount_col="CONFORMED_VALUE",
         id_col="NSE_ID",
     ):
         raise RuntimeError("Data quality validation failed at stage: after_build_transactions")
