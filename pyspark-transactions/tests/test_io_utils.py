@@ -17,7 +17,7 @@ from pyspark.sql.types import (
     StructType,
 )
 
-from e3_contracts_to_transactions.io_utils import (
+from contracts_to_transactions.io_utils import (
     read_csv,
     write_csv,
 )

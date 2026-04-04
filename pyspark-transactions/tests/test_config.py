@@ -7,7 +7,7 @@ from textwrap import dedent
 
 import pytest
 
-from e3_contracts_to_transactions.config import load_parameters
+from contracts_to_transactions.config import load_parameters
 
 
 @pytest.fixture()

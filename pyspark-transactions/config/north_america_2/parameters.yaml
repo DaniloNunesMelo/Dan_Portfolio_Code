@@ -1,0 +1,47 @@
+# ──────────────────────────────────────────────────────────
+# North America 2 – Pipeline Parameters
+# ──────────────────────────────────────────────────────────
+# Edit this file to change business rules without touching code.
+
+source_system: "North America 2"
+
+transaction_type_mapping:
+  "1": "Private"
+  "2": "Corporate"
+  "3": "SME"
+  "4": "Government"
+  "5": "NonProfit"
+  "6": "GroupPolicy"
+  "7": "BrokerSubmitted"
+  "8": "PartnerNetwork"
+  "9": "Reinsurance"
+  "10": "Internal"
+
+transaction_type_default: "Unknown"
+
+transaction_direction_mapping:
+  "CL": "COINSURANCE"
+  "RX": "REINSURANCE"
+  "RI": "INWARD_REINSURANCE"
+  "DI": "DIRECT"
+  "RC": "RECOVERY"
+
+transaction_category_negative: "REFUND"
+transaction_category_positive: "CHARGE"
+
+# North America 2 uses US date format
+date_of_loss_format: "MM/dd/yyyy"
+creation_date_format: "MM/dd/yyyy HH:mm"
+
+hashify_base_url: "https://api.hashify.net/hash/md4/hex"
+hashify_response_field: "Digest"
+
+claim_contract_join:
+  claim_contract_id_col: "CONTRACT_ID"
+  claim_source_system_col: "CONTRACT_SOURCE_SYSTEM"
+  contract_id_col: "CONTRACT_ID"
+  contract_source_system_col: "SOURCE_SYSTEM"
+
+output_file_format: "csv"
+output_header: true
+output_delimiter: ","

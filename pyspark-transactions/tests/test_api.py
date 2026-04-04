@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import requests
 
-from e3_contracts_to_transactions.api import (
+from contracts_to_transactions.api import (
     DEFAULT_BACKOFF_FACTOR,
     DEFAULT_RETRY_ON,
     DEFAULT_TIMEOUT,

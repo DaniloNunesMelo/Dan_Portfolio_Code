@@ -1,4 +1,4 @@
-"""CLI entrypoint & orchestration for the Europe 3 pipeline."""
+"""CLI entrypoint & orchestration for the Contracts-to-Transactions pipeline."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ def _build_parser() -> argparse.ArgumentParser:
     inspected / tested without triggering ``sys.exit``.
     """
     parser = argparse.ArgumentParser(
-        description="Europe 3 — Contracts-to-Transactions pipeline",
+        description="Contracts-to-Transactions pipeline",
     )
     parser.add_argument(
         "--contracts",
@@ -64,7 +64,7 @@ def parse_args(
 
 
 def create_spark_session(
-    app_name: str = "Europe3_Pipeline",
+    app_name: str = "Pipeline",
 ) -> SparkSession:
     """Build or retrieve a SparkSession."""
     return SparkSession.builder.appName(app_name).master("local[*]").getOrCreate()
@@ -132,7 +132,15 @@ def main(argv: list[str] | None = None) -> None:
     config = load_parameters(args.config)
     logger.info("Config loaded: source_system=%s", config["source_system"])
 
-    spark = create_spark_session()
+    # Pin driver and worker to the same interpreter to prevent version mismatches
+    # when the system Python differs from the venv Python.
+    import os
+    import sys as _sys
+    os.environ.setdefault("PYSPARK_PYTHON", _sys.executable)
+    os.environ.setdefault("PYSPARK_DRIVER_PYTHON", _sys.executable)
+
+    app_name = config["source_system"].replace(" ", "") + "_Pipeline"
+    spark = create_spark_session(app_name=app_name)
     try:
         run_pipeline(
             spark,

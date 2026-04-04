@@ -2,15 +2,23 @@
 
 from __future__ import annotations
 
+import os
+import sys
+
 import pytest
 from pyspark.sql import SparkSession
+
+# Pin both driver and worker to the same interpreter that is running pytest.
+# Must be set before the JVM starts — SparkSession config is too late.
+os.environ["PYSPARK_PYTHON"] = sys.executable
+os.environ["PYSPARK_DRIVER_PYTHON"] = sys.executable
 
 
 @pytest.fixture(scope="session")
 def spark() -> SparkSession:
     """Session-scoped local Spark for all tests."""
     session = (
-        SparkSession.builder.appName("Europe3_Tests")
+        SparkSession.builder.appName("Pipeline_Tests")
         .master("local[1]")
         .config("spark.sql.shuffle.partitions", "1")
         .config("spark.ui.enabled", "false")

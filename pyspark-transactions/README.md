@@ -1,7 +1,13 @@
-# Contracts to Transactions – Europe 3
+# Contracts to Transactions – Multi-Region Pipeline
 
-**PySpark pipeline** that reads CONTRACT and CLAIM CSV extracts from the
-"Europe 3" source and produces a TRANSACTIONS CSV in the target schema.
+**PySpark pipeline** that reads CONTRACT and CLAIM CSV extracts from multiple
+regional source systems and produces a TRANSACTIONS CSV per region in a
+standardised target schema.
+
+Orchestrated by **Apache Airflow** (daily schedule, one independent DAG per
+region) with **Great Expectations** quality gates before and after each Spark
+job. Adding a new region requires only a config file, a data directory, and
+one line in the DAG factory's `REGION_CONFIGS` list.
 
 ---
 
@@ -16,6 +22,10 @@ export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 ```bash
 python3.12 -m venv .venv && source .venv/bin/activate
 pip3.12 install -r requirements.txt
+pip3.12 install -r requirements-dev.txt
+
+# Install the package as editable so Airflow workers can import it
+pip3.12 install --no-build-isolation -e .
 
 # run tests
 pytest -v
@@ -25,18 +35,58 @@ python3.12 -m pytest -v --log-file=output/test.log --log-file-level=INFO
 # This captures everything (test results + logs) into one file
 python3.12 -m pytest -v 2>&1 | tee output/test.log
 
-# run pipeline
-python3.12 -m e3_contracts_to_transactions.main \
-  --contracts data/contracts.csv \
-  --claims    data/claims.csv \
-  --output    output/TRANSACTIONS.csv
+# run any region directly (without Airflow)
+python3.12 -m contracts_to_transactions.main \
+  --contracts data/europe_3/contracts.csv \
+  --claims    data/europe_3/claims.csv \
+  --config    config/europe_3/parameters.yaml \
+  --output    output/europe_3/TRANSACTIONS.csv
 
-# run with a custom config
-python3.12 -m e3_contracts_to_transactions.main \
-  --contracts data/contracts.csv \
-  --claims    data/claims.csv \
-  --config    config/parameters.yaml \
-  --output    output/TRANSACTIONS.csv
+python3.12 -m contracts_to_transactions.main \
+  --contracts data/asia_pacific_1/contracts.csv \
+  --claims    data/asia_pacific_1/claims.csv \
+  --config    config/asia_pacific_1/parameters.yaml \
+  --output    output/asia_pacific_1/TRANSACTIONS.csv
+
+python3.12 -m contracts_to_transactions.main \
+  --contracts data/north_america_2/contracts.csv \
+  --claims    data/north_america_2/claims.csv \
+  --config    config/north_america_2/parameters.yaml \
+  --output    output/north_america_2/TRANSACTIONS.csv
+```
+
+### Running via Airflow
+
+```bash
+# 1. Configure the Spark connection in Airflow
+#    Admin → Connections → spark_default (type: Spark, host: spark://localhost:7077)
+#    For local mode leave the host field empty.
+
+# 2. Point Airflow at the dags/ folder (or copy the DAG file there)
+export AIRFLOW__CORE__DAGS_FOLDER=$(pwd)/dags
+
+# 3. Trigger any region independently
+airflow dags trigger europe_3_contracts_to_transactions
+airflow dags trigger asia_pacific_1_contracts_to_transactions
+airflow dags trigger north_america_2_contracts_to_transactions
+```
+
+The DAG factory in `dags/pipeline_dag.py` registers one independent DAG per
+region. Each DAG runs three tasks in sequence:
+
+```
+validate_input  →  run_etl  →  validate_output
+  (GX / pandas)    (Spark)      (GX / pandas)
+```
+
+### Running GX validation independently
+
+```bash
+python -c "
+from e3_contracts_to_transactions.gx_validation import validate_claims, validate_transactions
+validate_claims('data/claims.csv')
+validate_transactions('output/TRANSACTIONS.csv')
+"
 ```
 
 ---
@@ -45,30 +95,85 @@ python3.12 -m e3_contracts_to_transactions.main \
 
 ```
 ├── config/
-│   └── parameters.yaml        # Externalised business rules (see below)
-├── e3_contracts_to_transactions/
+│   ├── europe_3/
+│   │   └── parameters.yaml        # Europe 3 rules (dd.MM.yyyy dates)
+│   ├── asia_pacific_1/
+│   │   └── parameters.yaml        # Asia Pacific 1 rules (yyyy-MM-dd dates)
+│   └── north_america_2/
+│       └── parameters.yaml        # North America 2 rules (MM/dd/yyyy dates)
+├── dags/
+│   └── pipeline_dag.py            # DAG factory — one Airflow DAG per region
+├── jobs/
+│   └── pipeline.py                # SparkSubmitOperator entrypoint (thin wrapper)
+├── contracts_to_transactions/     # Region-agnostic processing package
 │   ├── __init__.py
-│   ├── main.py                # CLI entrypoint & orchestration
-│   ├── config.py              # YAML config loader & validation
-│   ├── transform.py           # Pure Spark transformations (no I/O, no side-effects)
-│   ├── api.py                 # Hashify API client (injectable)
-│   ├── io_utils.py            # CSV read / write helpers
-│   └── schemas.py             # Shared StructType definitions
+│   ├── main.py                    # CLI entrypoint & orchestration
+│   ├── config.py                  # YAML config loader & validation
+│   ├── transform.py               # Pure Spark transformations (no I/O, no side-effects)
+│   ├── validate.py                # Runtime Spark data quality guard
+│   ├── gx_validation.py           # Great Expectations orchestration-level quality gates
+│   ├── api.py                     # Hashify API client (injectable)
+│   ├── io_utils.py                # CSV read / write helpers
+│   └── schemas.py                 # Shared StructType definitions
 ├── tests/
 │   ├── __init__.py
-│   ├── conftest.py            # Session-scoped Spark fixture & default config
-│   ├── test_transform.py      # Unit tests for every mapping rule (31 tests)
-│   ├── test_api.py            # API client tests – mocked HTTP (5 tests)
-│   ├── test_config.py         # Config loader tests (6 tests)
-│   ├── test_io_utils.py       # CSV read/write tests (14 tests)
-│   └── test_main.py           # CLI & orchestration tests (13 tests)
+│   ├── conftest.py                # Session-scoped Spark fixture & default config
+│   ├── test_transform.py          # Unit tests for every mapping rule (31 tests)
+│   ├── test_api.py                # API client tests – mocked HTTP (5 tests)
+│   ├── test_config.py             # Config loader tests (6 tests)
+│   ├── test_io_utils.py           # CSV read/write tests (14 tests)
+│   └── test_main.py               # CLI & orchestration tests (13 tests)
 ├── data/
-│   ├── contracts.csv          # Sample input data
-│   └── claims.csv             # Sample input data
+│   ├── europe_3/
+│   │   ├── contracts.csv          # Europe 3 sample input
+│   │   └── claims.csv
+│   ├── asia_pacific_1/
+│   │   ├── contracts.csv          # Asia Pacific 1 synthetic data (ISO dates)
+│   │   └── claims.csv
+│   └── north_america_2/
+│       ├── contracts.csv          # North America 2 synthetic data (US dates)
+│       └── claims.csv
+├── output/
+│   ├── europe_3/
+│   ├── asia_pacific_1/
+│   └── north_america_2/
 ├── requirements.txt
 ├── requirements-dev.txt
 └── README.md
 ```
+
+---
+
+## Multi-region architecture
+
+The processing package (`contracts_to_transactions/`) contains no region-specific logic. Every business rule is externalised to a per-region `config/{region}/parameters.yaml`. Region differences that would otherwise require code changes are handled by config alone:
+
+| Parameter | Europe 3 | Asia Pacific 1 | North America 2 |
+|---|---|---|---|
+| `source_system` | `"Europe 3"` | `"Asia Pacific 1"` | `"North America 2"` |
+| `date_of_loss_format` | `dd.MM.yyyy` | `yyyy-MM-dd` | `MM/dd/yyyy` |
+| `creation_date_format` | `dd.MM.yyyy HH:mm` | `yyyy-MM-dd HH:mm` | `MM/dd/yyyy HH:mm` |
+
+Airflow runs each region as a **fully independent DAG** generated by the factory in `dags/pipeline_dag.py`. Pausing, rerunning, or adjusting retries for one region does not affect others.
+
+### Adding a new region
+
+1. Create `config/{region}/parameters.yaml` with region-specific values
+2. Add `data/{region}/contracts.csv` and `data/{region}/claims.csv`
+3. Add one dict to `REGION_CONFIGS` in `dags/pipeline_dag.py`:
+
+```python
+{
+    "region_id":    "latin_america_1",
+    "display_name": "Latin America 1",
+    "config":       "config/latin_america_1/parameters.yaml",
+    "contracts":    "data/latin_america_1/contracts.csv",
+    "claims":       "data/latin_america_1/claims.csv",
+    "output":       "output/latin_america_1/TRANSACTIONS.csv",
+}
+```
+
+No other code change is required.
 
 ---
 
@@ -229,6 +334,36 @@ it already consumes a plain `dict` — it does not care where the values came fr
 
 ---
 
+## Data quality architecture
+
+Two complementary validation layers run for every pipeline execution:
+
+| Layer | File | When | How | Surface |
+|---|---|---|---|---|
+| **Runtime Spark guard** | `validate.py` | Inside the Spark job | Spark DataFrame counts | `RuntimeError` aborts the job |
+| **Orchestration GX gate** | `gx_validation.py` | Before & after Spark via Airflow | pandas + Great Expectations | `ValidationError` → Airflow task FAILED |
+
+### Pre-ETL expectations (`validate_claims`)
+
+| Expectation | Column | Reason |
+|---|---|---|
+| Column exists | all 8 source columns | Catches upstream schema drift before Spark launches |
+| Not null | `CLAIM_ID`, `AMOUNT` | Null CLAIM_ID corrupts NSE_ID hash; null AMOUNT silently maps to CHARGE |
+| Unique | `CLAIM_ID` | Duplicate CLAIM_ID → duplicate NSE_ID in output |
+| Regex `^[A-Z]{2}_\d+$` | `CLAIM_ID` | Malformed prefix → null TRANSACTION_DIRECTION; malformed suffix → null SOURCE_SYSTEM_ID |
+
+### Post-ETL expectations (`validate_transactions`)
+
+| Expectation | Column | Reason |
+|---|---|---|
+| Column exists | all 11 output columns | Guards against TRANSACTION_CATEGORY being dropped by select() |
+| Not null + unique | `NSE_ID` | Primary identifier for downstream consumers |
+| In set | `TRANSACTION_TYPE` | Mapping regression (new CLAIM_TYPE in data but not in YAML) → silent "Unknown" |
+| In set (nulls allowed) | `TRANSACTION_DIRECTION` | Unknown prefixes produce null (valid per schema) but unexpected values surface here |
+| In set | `TRANSACTION_CATEGORY` | Config label rename would silently break downstream |
+
+---
+
 ## Column mappings
 
 | Target column              | Source / logic                                                       |
@@ -243,6 +378,7 @@ it already consumes a plain `dict` — it does not care where the values came fr
 | CREATION_DATE              | `CREATION_DATE` parsed using `config.creation_date_format`           |
 | SYSTEM_TIMESTAMP           | `current_timestamp()` at transformation time                         |
 | NSE_ID                     | MD4 hex digest of `CLAIM_ID` via Hashify API                         |
+| TRANSACTION_CATEGORY       | `CHARGE` (positive `CONFORMED_VALUE`) or `REFUND` (negative)         |
 
 ---
 
@@ -295,5 +431,9 @@ deterministic lambda; production passes the real HTTP function. No monkey-patchi
 - `config.py` – parameter loading & validation only
 - `io_utils.py` – file reads and writes only
 - `transform.py` – pure Spark column logic only (no I/O, no HTTP)
+- `validate.py` – runtime Spark data quality guard only
+- `gx_validation.py` – orchestration-level GX quality gates only (pandas, no Spark)
 - `api.py` – HTTP client only
 - `main.py` – wiring / orchestration only
+- `jobs/pipeline.py` – SparkSubmitOperator entrypoint only
+- `dags/pipeline_dag.py` – Airflow DAG factory (one DAG per region)

@@ -13,7 +13,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from pyspark.sql import SparkSession
 
-from e3_contracts_to_transactions.main import (
+from contracts_to_transactions.main import (
     create_spark_session,
     main,
     parse_args,
@@ -84,7 +84,7 @@ class TestCreateSparkSession:
         assert spark.sparkContext is not None
 
     def test_custom_app_name(self):
-        with patch("e3_contracts_to_transactions.main.SparkSession") as mock_ss:
+        with patch("contracts_to_transactions.main.SparkSession") as mock_ss:
             mock_builder = MagicMock()
             mock_ss.builder = mock_builder
             mock_builder.appName.return_value = mock_builder
@@ -100,7 +100,7 @@ class TestCreateSparkSession:
 # -- run_pipeline ----------------------------------------------
 
 
-_HASHIFY_PATCH = "e3_contracts_to_transactions.main.make_hashify_fn"
+_HASHIFY_PATCH = "contracts_to_transactions.main.make_hashify_fn"
 
 
 class TestRunPipeline:
@@ -225,7 +225,7 @@ class TestRunPipeline:
 # -- main() entry point ----------------------------------------
 
 
-_CREATE_SPARK_PATCH = "e3_contracts_to_transactions.main.create_spark_session"
+_CREATE_SPARK_PATCH = "contracts_to_transactions.main.create_spark_session"
 
 
 class TestMain:
@@ -322,7 +322,7 @@ def test_main_guard():
 
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr("sys.argv", ["main.py", "--help"])
-        mp.delitem(sys.modules, "e3_contracts_to_transactions.main", raising=False)
+        mp.delitem(sys.modules, "contracts_to_transactions.main", raising=False)
         with pytest.raises(SystemExit) as exc_info:
-            runpy.run_module("e3_contracts_to_transactions.main", run_name="__main__")
+            runpy.run_module("contracts_to_transactions.main", run_name="__main__")
         assert exc_info.value.code == 0

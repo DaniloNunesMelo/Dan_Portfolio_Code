@@ -13,7 +13,7 @@ from pyspark.sql.types import (
     StructType,
 )
 
-from e3_contracts_to_transactions.transform import (
+from contracts_to_transactions.transform import (
     add_business_date,
     add_conformed_value,
     add_contract_source_system_id,
@@ -494,6 +494,7 @@ class TestBuildTransactions:
             "CREATION_DATE",
             "SYSTEM_TIMESTAMP",
             "NSE_ID",
+            "TRANSACTION_CATEGORY",
         ]
         assert result.columns == expected_cols
 
