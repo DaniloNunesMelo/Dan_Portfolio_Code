@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write # required to push the sample output commit
+  contents: write # required to push the sample output commit;
 
 jobs:
   run-pipeline:
