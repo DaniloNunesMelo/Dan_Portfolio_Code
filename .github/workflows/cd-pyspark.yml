@@ -14,15 +14,12 @@ permissions:
 jobs:
   run-pipeline:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        region: [europe_3, north_america_2, asia_pacific_1]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # full history so git push is not rejected as non-fast-forward
+          fetch-depth: 0
 
       - name: Set up Java 17
         uses: actions/setup-java@v4
@@ -42,40 +39,36 @@ jobs:
           pip install -r requirements.txt
           pip install -e .
 
-      - name: Create output directory
-        run: mkdir -p pyspark-transactions/output/${{ matrix.region }}
-
-      - name: Run main pipeline
+      - name: Run all region pipelines
         working-directory: ./pyspark-transactions
         run: |
-          python jobs/pipeline.py \
-            --contracts data/${{ matrix.region }}/contracts.csv \
-            --claims    data/${{ matrix.region }}/claims.csv \
-            --output    output/${{ matrix.region }}/TRANSACTIONS.csv \
-            --config    config/${{ matrix.region }}/parameters.yaml
+          for region in europe_3 north_america_2 asia_pacific_1; do
+            echo "--- Running pipeline for $region ---"
+            mkdir -p output/$region
+            python jobs/pipeline.py \
+              --contracts data/$region/contracts.csv \
+              --claims    data/$region/claims.csv \
+              --output    output/$region/TRANSACTIONS.csv \
+              --config    config/$region/parameters.yaml
+          done
 
-      - name: Upload output as artifact
+      - name: Upload outputs as artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: pyspark-transactions-output-${{ matrix.region }}
-          path: pyspark-transactions/output/${{ matrix.region }}/TRANSACTIONS.csv
+          name: pyspark-transactions-output
+          path: |
+            pyspark-transactions/output/europe_3/TRANSACTIONS.csv
+            pyspark-transactions/output/north_america_2/TRANSACTIONS.csv
+            pyspark-transactions/output/asia_pacific_1/TRANSACTIONS.csv
 
-      - name: Commit sample output to repository
+      - name: Commit all sample outputs to repository
         run: |
-          cp pyspark-transactions/output/${{ matrix.region }}/TRANSACTIONS.csv \
-             pyspark-transactions/output/sample_TRANSACTIONS_${{ matrix.region }}.csv
+          for region in europe_3 north_america_2 asia_pacific_1; do
+            cp pyspark-transactions/output/$region/TRANSACTIONS.csv \
+               pyspark-transactions/output/sample_TRANSACTIONS_$region.csv
+          done
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add pyspark-transactions/output/sample_TRANSACTIONS_${{ matrix.region }}.csv
-          if git diff --cached --quiet; then
-            echo "No changes to commit for ${{ matrix.region }}"
-            exit 0
-          fi
-          git commit -m "chore(pyspark): update sample transactions dataset [${{ matrix.region }}]"
-          # Retry loop: parallel matrix jobs can race on push; rebase and retry up to 5 times
-          for i in 1 2 3 4 5; do
-            git pull --rebase origin master && git push && break
-            if [ "$i" -eq 5 ]; then echo "Push failed after 5 attempts"; exit 1; fi
-            echo "Push attempt $i failed — retrying in $((i * 5))s..."
-            sleep $((i * 5))
-          done
+          git add pyspark-transactions/output/sample_TRANSACTIONS_*.csv
+          git diff --cached --quiet || git commit -m "chore(pyspark): update sample transaction datasets [all regions]"
+          git push
