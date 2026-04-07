@@ -1,11 +1,11 @@
 # Runtime — Spark 4.0
 # Requires: Java 17 or 21, Python 3.9+
-pyspark>=4.0.0,<4.1.0
+pyspark>=4.0.0,<4.2.0
 requests>=2.31
 pyyaml>=6.0
 
 # Orchestration
-apache-airflow>=2.8,<3.0
+apache-airflow>=3.0,<4.0
 apache-airflow-providers-apache-spark>=4.0
 
 # Data quality

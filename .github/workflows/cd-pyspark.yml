@@ -1,4 +1,4 @@
-name: CD - PySpark E3 Transactions Pipeline
+name: CD - PySpark Transactions Pipeline
 
 on:
   push:
@@ -37,27 +37,29 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install --no-build-isolation -e .
 
       - name: Create output directory
-        run: mkdir -p pyspark-transactions/output
+        run: mkdir -p pyspark-transactions/output/europe_3
 
       - name: Run main pipeline
         working-directory: ./pyspark-transactions
         run: |
-          python -m e3_contracts_to_transactions.main \
-            --contracts data/contracts.csv \
-            --claims data/claims.csv \
-            --output output/TRANSACTIONS.csv
+          python jobs/pipeline.py \
+            --contracts data/europe_3/contracts.csv \
+            --claims    data/europe_3/claims.csv \
+            --output    output/europe_3/TRANSACTIONS.csv \
+            --config    config/europe_3/parameters.yaml
 
       - name: Upload output as artifact
         uses: actions/upload-artifact@v4
         with:
           name: pyspark-transactions-output
-          path: pyspark-transactions/output/TRANSACTIONS.csv
+          path: pyspark-transactions/output/europe_3/TRANSACTIONS.csv
 
       - name: Commit sample output to repository
         run: |
-          cp pyspark-transactions/output/TRANSACTIONS.csv pyspark-transactions/output/sample_TRANSACTIONS.csv
+          cp pyspark-transactions/output/europe_3/TRANSACTIONS.csv pyspark-transactions/output/sample_TRANSACTIONS.csv
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add pyspark-transactions/output/sample_TRANSACTIONS.csv

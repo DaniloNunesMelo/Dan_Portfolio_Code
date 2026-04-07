@@ -1,4 +1,4 @@
-name: CI - PySpark E3 Transactions
+name: CI - PySpark Transactions
 
 on:
   push:
@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.11", "3.12", "3.13"]
+        python-version: ["3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
 
@@ -47,6 +47,7 @@ jobs:
           if [ -f requirements-dev.txt ]; then
             pip install -r requirements-dev.txt
           fi
+          pip install --no-build-isolation -e .
 
       - name: Create ci-reports directory
         run: mkdir -p pyspark-transactions/ci-reports
@@ -60,14 +61,14 @@ jobs:
       - name: Type safety check (MyPy)
         working-directory: ./pyspark-transactions
         run: |
-          mypy --ignore-missing-imports --check-untyped-defs e3_contracts_to_transactions \
+          mypy --ignore-missing-imports --check-untyped-defs contracts_to_transactions \
             2>&1 | tee ci-reports/mypy.log
 
       - name: Run tests with coverage
         working-directory: ./pyspark-transactions
         run: |
           pytest -v \
-            --cov=e3_contracts_to_transactions \
+            --cov=contracts_to_transactions \
             --cov-report=term-missing \
             --cov-report=xml:ci-reports/coverage.xml \
             --cov-report=html:ci-reports/coverage-html \
