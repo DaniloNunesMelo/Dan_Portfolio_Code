@@ -47,7 +47,7 @@ jobs:
           if [ -f requirements-dev.txt ]; then
             pip install -r requirements-dev.txt
           fi
-          pip install --no-build-isolation -e .
+          pip install -e .
 
       - name: Create ci-reports directory
         run: mkdir -p pyspark-transactions/ci-reports
