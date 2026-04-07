@@ -14,6 +14,9 @@ permissions:
 jobs:
   run-pipeline:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        region: [europe_3, north_america_2, asia_pacific_1]
 
     steps:
       - name: Checkout code
@@ -40,28 +43,29 @@ jobs:
           pip install -e .
 
       - name: Create output directory
-        run: mkdir -p pyspark-transactions/output/europe_3
+        run: mkdir -p pyspark-transactions/output/${{ matrix.region }}
 
       - name: Run main pipeline
         working-directory: ./pyspark-transactions
         run: |
           python jobs/pipeline.py \
-            --contracts data/europe_3/contracts.csv \
-            --claims    data/europe_3/claims.csv \
-            --output    output/europe_3/TRANSACTIONS.csv \
-            --config    config/europe_3/parameters.yaml
+            --contracts data/${{ matrix.region }}/contracts.csv \
+            --claims    data/${{ matrix.region }}/claims.csv \
+            --output    output/${{ matrix.region }}/TRANSACTIONS.csv \
+            --config    config/${{ matrix.region }}/parameters.yaml
 
       - name: Upload output as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: pyspark-transactions-output
-          path: pyspark-transactions/output/europe_3/TRANSACTIONS.csv
+          name: pyspark-transactions-output-${{ matrix.region }}
+          path: pyspark-transactions/output/${{ matrix.region }}/TRANSACTIONS.csv
 
       - name: Commit sample output to repository
         run: |
-          cp pyspark-transactions/output/europe_3/TRANSACTIONS.csv pyspark-transactions/output/sample_TRANSACTIONS.csv
+          cp pyspark-transactions/output/${{ matrix.region }}/TRANSACTIONS.csv \
+             pyspark-transactions/output/sample_TRANSACTIONS_${{ matrix.region }}.csv
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add pyspark-transactions/output/sample_TRANSACTIONS.csv
-          git diff --cached --quiet || git commit -m "chore(pyspark): update sample transactions dataset"
+          git add pyspark-transactions/output/sample_TRANSACTIONS_${{ matrix.region }}.csv
+          git diff --cached --quiet || git commit -m "chore(pyspark): update sample transactions dataset [${{ matrix.region }}]"
           git push
