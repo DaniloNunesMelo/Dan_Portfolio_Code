@@ -228,12 +228,28 @@ The config file can be specified in three ways (highest priority first):
 
 ---
 
-## Towards a database-backed parameter store
+## Towards a database-backed parameter store & run audit log
 
 The current YAML file is convenient for a single pipeline, but in a
 production environment with multiple source systems and teams, some or all
 of these parameters could be migrated to a database (or a configuration
-management service).
+management service). A companion **run audit log** closes the gap between
+CI/CD pass/fail signals and full operational observability.
+
+### CI/CD vs. database audit — what each covers
+
+| Concern | CI/CD | DB audit log |
+|---|---|---|
+| Code correctness | ✅ CI tests on every push | — |
+| Pipeline output produced | ✅ CD artifact per region | — |
+| What config was active on run N | — | ✅ `config_snapshot` |
+| How many rows were processed | — | ✅ `rows_input / rows_output` |
+| How long the job took | — | ✅ `duration_secs` |
+| Why two outputs differ | — | ✅ diff `config_snapshot` between runs |
+| Historical run trends | — | ✅ queryable over time |
+
+CI/CD answers "did the pipeline run and produce correct output?".
+The audit log answers "what did it do, with what parameters, how many rows, and how long?"
 
 ### Which parameters are candidates for a database?
 
@@ -259,31 +275,38 @@ better kept close to the code:
 ### Proposed architecture
 
 ```
-┌──────────────┐      ┌─────────────────┐      ┌───────────────┐
-│  parameters  │      │  DB / config    │      │   Pipeline    │
-│  .yaml       │─────▶│  service        │─────▶│   config.py   │
-│  (static)    │      │  (dynamic)      │      │   (merged)    │
-└──────────────┘      └─────────────────┘      └───────────────┘
+┌──────────────┐      ┌─────────────────┐      ┌────────────────────┐
+│  parameters  │      │  DB / config    │      │   Pipeline         │
+│  .yaml       │─────▶│  service        │─────▶│   config.py        │
+│  (static)    │      │  (dynamic)      │      │   (merged config)  │
+└──────────────┘      └─────────────────┘      └────────┬───────────┘
+                                                         │ run result
+                                                         ▼
+                                               ┌─────────────────────┐
+                                               │  pipeline_run_log   │
+                                               │  (audit trail)      │
+                                               └─────────────────────┘
 ```
 
 1. **`config.py` loads the YAML first** (file-based defaults).
-2. **Then queries the database** for any overrides keyed by
-   `(source_system, environment)`.
+2. **Then queries the database** for any overrides keyed by `(source_system, environment)`.
 3. **DB values win** — the merged dict is what the pipeline uses.
-4. **Fallback**: if the DB is unreachable, the pipeline can still run
+4. **At the end of every run**, `main.py` writes one row to `pipeline_run_log`
+   including the frozen `config_snapshot`, row counts, duration, and status.
+5. **Fallback**: if the DB is unreachable, the pipeline can still run
    with YAML-only values (degraded mode), or fail fast depending on policy.
 
-### Example database tables
+### Database tables
 
 ```sql
--- Lookup table for transaction types (versioned)
+-- Lookup table for transaction types (versioned, with SCD2 support)
 CREATE TABLE lookup_transaction_type (
     id              SERIAL PRIMARY KEY,
     source_system   TEXT NOT NULL,
     claim_type_code TEXT NOT NULL,
     label           TEXT NOT NULL,
     effective_from  DATE NOT NULL DEFAULT CURRENT_DATE,
-    effective_to    DATE,
+    effective_to    DATE,                        -- NULL = currently active
     created_by      TEXT NOT NULL,
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -301,27 +324,41 @@ CREATE TABLE lookup_direction (
 -- General pipeline config (key-value, environment-aware)
 CREATE TABLE pipeline_config (
     source_system   TEXT NOT NULL,
-    environment     TEXT NOT NULL,       -- dev / staging / prod
+    environment     TEXT NOT NULL,              -- dev / staging / prod
     key             TEXT NOT NULL,
     value           TEXT NOT NULL,
     updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (source_system, environment, key)
 );
+
+-- Run audit log: one row per pipeline execution
+CREATE TABLE pipeline_run_log (
+    run_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    region          TEXT NOT NULL,
+    triggered_by    TEXT,                        -- 'airflow' / 'cd-workflow' / 'cli'
+    git_sha         TEXT,                        -- code version at run time
+    status          TEXT NOT NULL,               -- 'success' / 'failed'
+    rows_input      INTEGER,                     -- claims rows read
+    rows_output     INTEGER,                     -- transactions rows written
+    duration_secs   NUMERIC(10, 3),
+    config_snapshot JSONB,                       -- full parameters dict frozen at run start
+    error_message   TEXT,                        -- populated on failure, NULL on success
+    run_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 ```
 
 ### Implementation sketch
 
-The existing `config.py` would gain an optional `_load_from_db` step:
+**`config.py`** — gains an optional `_load_from_db` step (existing interface unchanged):
 
 ```python
 def load_parameters(path=None, db_conn=None, env="prod"):
-    config = _load_yaml(path)                 # static defaults
+    config = _load_yaml(path)                   # static defaults
 
     if db_conn:
         source = config["source_system"]
         config["transaction_type_mapping"] = _query_type_mapping(db_conn, source)
         config["transaction_direction_mapping"] = _query_direction_mapping(db_conn, source)
-        # override any key-value pairs from pipeline_config
         for key, value in _query_kv(db_conn, source, env):
             config[key] = value
 
@@ -329,8 +366,47 @@ def load_parameters(path=None, db_conn=None, env="prod"):
     return config
 ```
 
-The rest of the pipeline (`transform.py`, `main.py`) stays unchanged because
-it already consumes a plain `dict` — it does not care where the values came from.
+**`main.py`** — wraps `run_pipeline` to write the audit row:
+
+```python
+import json, os, time, uuid
+
+def run_pipeline_with_audit(spark, config, contracts_path, claims_path,
+                             output_path, db_conn=None, triggered_by="cli"):
+    run_id = str(uuid.uuid4())
+    t0 = time.monotonic()
+    status, error_msg, rows_out = "failed", None, None
+
+    try:
+        run_pipeline(spark, config, contracts_path, claims_path, output_path)
+        rows_out = spark.read.csv(output_path, header=True).count()
+        status = "success"
+    except Exception as exc:
+        error_msg = str(exc)
+        raise
+    finally:
+        if db_conn:
+            db_conn.execute("""
+                INSERT INTO pipeline_run_log
+                    (run_id, region, triggered_by, git_sha, status,
+                     rows_output, duration_secs, config_snapshot, error_message)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                run_id,
+                config["source_system"],
+                triggered_by,
+                os.environ.get("GITHUB_SHA"),
+                status,
+                rows_out,
+                round(time.monotonic() - t0, 3),
+                json.dumps(config),    # ← config frozen at run start
+                error_msg,
+            ))
+```
+
+The rest of the pipeline (`transform.py`, `validate.py`, etc.) stays unchanged
+because everything downstream already consumes a plain `dict` — it does not
+care where the values came from or whether a run was logged.
 
 ---
 
