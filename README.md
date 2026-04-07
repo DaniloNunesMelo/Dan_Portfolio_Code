@@ -2,17 +2,18 @@
 
 [Full report](https://htmlpreview.github.io/?https://github.com/DaniloNunesMelo/Dan_Portfolio_Code/blob/python-coverage-comment-action-data/htmlcov/index.html)
 
-| Name                                            |    Stmts |     Miss |   Cover |   Missing |
-|------------------------------------------------ | -------: | -------: | ------: | --------: |
-| e3\_contracts\_to\_transactions/\_\_init\_\_.py |        0 |        0 |    100% |           |
-| e3\_contracts\_to\_transactions/api.py          |       22 |        0 |    100% |           |
-| e3\_contracts\_to\_transactions/config.py       |       21 |        0 |    100% |           |
-| e3\_contracts\_to\_transactions/io\_utils.py    |       24 |        0 |    100% |           |
-| e3\_contracts\_to\_transactions/main.py         |       45 |        2 |     96% |   90, 108 |
-| e3\_contracts\_to\_transactions/schemas.py      |        2 |        0 |    100% |           |
-| e3\_contracts\_to\_transactions/transform.py    |       86 |        0 |    100% |           |
-| e3\_contracts\_to\_transactions/validate.py     |       26 |        8 |     69% |31, 35-37, 44, 49-51 |
-| **TOTAL**                                       |  **226** |   **10** | **96%** |           |
+| Name                                          |    Stmts |     Miss |   Cover |   Missing |
+|---------------------------------------------- | -------: | -------: | ------: | --------: |
+| contracts\_to\_transactions/\_\_init\_\_.py   |        0 |        0 |    100% |           |
+| contracts\_to\_transactions/api.py            |       22 |        0 |    100% |           |
+| contracts\_to\_transactions/config.py         |       21 |        0 |    100% |           |
+| contracts\_to\_transactions/gx\_validation.py |       37 |       37 |      0% |    17-149 |
+| contracts\_to\_transactions/io\_utils.py      |       24 |        0 |    100% |           |
+| contracts\_to\_transactions/main.py           |       50 |        2 |     96% |   90, 108 |
+| contracts\_to\_transactions/schemas.py        |        2 |        0 |    100% |           |
+| contracts\_to\_transactions/transform.py      |       86 |        0 |    100% |           |
+| contracts\_to\_transactions/validate.py       |       26 |        8 |     69% |31, 35-37, 44, 49-51 |
+| **TOTAL**                                     |  **268** |   **47** | **82%** |           |
 
 
 ## Setup coverage badge
