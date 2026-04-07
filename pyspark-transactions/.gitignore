@@ -23,7 +23,9 @@ spark-warehouse/
 !ci-reports/*.log
  
 # Output — raw pipeline artefact (never commit)
-output/TRANSACTIONS.csv
+output/**/*.csv
 output/*.csv
-# Exception: sample output managed by CD workflow
-!output/sample_TRANSACTIONS.csv
+# Exception: sample outputs managed by CD workflow
+!output/sample_TRANSACTIONS_europe_3.csv
+!output/sample_TRANSACTIONS_north_america_2.csv
+!output/sample_TRANSACTIONS_asia_pacific_1.csv
