@@ -1,0 +1,18 @@
+model_list:
+  - model_name: qwen-openvino
+    litellm_params:
+      model: openai/qwen
+      api_base: http://localhost:8000/v3   # GPU instance
+      api_key: "none"
+
+  - model_name: qwen-ollama
+    litellm_params:
+      model: ollama/qwen3.5:9b
+      api_base: http://192.168.118.30:11434
+
+general_settings:
+  master_key: "sk-local-key"
+
+litellm_settings:
+  use_responses_api: false
+  use_chat_completions_url_for_anthropic_messages: true

@@ -1,0 +1,11 @@
+# Model weights — too large for git (7.1 GB). Download from HuggingFace instead.
+models/**/1/openvino_model.bin
+
+# Large tokenizer files — download alongside the model
+# (use * not ** so symlinks inside 1/ are still committed)
+models/*/tokenizer.json
+models/*/vocab.json
+models/*/merges.txt
+
+# Python venv — regenerate with: uv sync
+.venv/

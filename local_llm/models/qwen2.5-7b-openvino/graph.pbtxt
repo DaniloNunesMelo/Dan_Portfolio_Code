@@ -1,0 +1,37 @@
+input_stream: "HTTP_REQUEST_PAYLOAD:input"
+output_stream: "HTTP_RESPONSE_PAYLOAD:output"
+
+node: {
+  name: "LLMExecutor"
+  calculator: "HttpLLMCalculator"
+  input_stream: "LOOPBACK:loopback"
+  input_stream: "HTTP_REQUEST_PAYLOAD:input"
+  input_side_packet: "LLM_NODE_RESOURCES:llm"
+  output_stream: "LOOPBACK:loopback"
+  output_stream: "HTTP_RESPONSE_PAYLOAD:output"
+  input_stream_info: {
+    tag_index: 'LOOPBACK:0',
+    back_edge: true
+  }
+  input_stream_handler: {
+    input_stream_handler: "SyncSetInputStreamHandler"
+    options: {
+      [mediapipe.SyncSetInputStreamHandlerOptions.ext]: {
+        sync_set: {
+          tag_index: "LOOPBACK:0"
+        }
+      }
+    }
+  }
+  node_options: {
+    [type.googleapis.com/mediapipe.LLMCalculatorOptions]: {
+      models_path: "/model/1"
+      device: "GPU"
+      pipeline_type: LM_CB
+      max_num_batched_tokens: 256
+      cache_size: 4
+      max_num_seqs: 64
+      dynamic_split_fuse: true
+    }
+  }
+}

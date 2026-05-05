@@ -1,0 +1,12 @@
+[project]
+name = "local-llm"
+version = "0.1.0"
+requires-python = "==3.13.*"
+dependencies = [
+    "litellm[proxy]",
+]
+
+[project.optional-dependencies]
+test = [
+    "anthropic",
+]
